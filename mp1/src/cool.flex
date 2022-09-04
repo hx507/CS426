@@ -5,8 +5,7 @@
 /*
  *  Stuff enclosed in %{ %} in the first section is copied verbatim to the
  *  output, so headers and global definitions are placed here to be visible
- * to the code in the file.  Don't remove anything that was here initially
- */
+ * to the code in the file.  Don't remove anything that was here initially */
 %{
 #include <cool-parse.h>
 #include <stringtab.h>
@@ -38,6 +37,8 @@ extern int curr_lineno;
 
 extern YYSTYPE cool_yylval;
 
+#define RETURN_STRING_AS(field, val, type) {cool_yylval.field = inttable.add_string(val); return type;}
+
 /*
  *  Add Your own definitions here
  */
@@ -51,6 +52,10 @@ extern YYSTYPE cool_yylval;
  */
 
 digit       [0-9]
+/* characters valid to be used in naming: letters, digit, underscore */
+name_char   [A-Za-z0-9_] 
+type_id     [A-Z]{name_char}*
+obj_id      [a-z]{name_char}*
 
 %%
 
@@ -68,5 +73,31 @@ digit       [0-9]
   *   - Line counting: You should keep the global variable curr_lineno updated
   *     with the correct line number
   */
+
+ /* Integers: 
+ *      - non-empty strings of digits 0-9 */
+{digit}+    { RETURN_STRING_AS(symbol, yytext, INT_CONST); }
+
+ /* Identifiers: 
+ *      - strings (other than keywords) consisting of letters, digits, and the underscore character 
+ *      - Type id: begin with a capital letter
+ *      - Object id: begin with a lower case letter 
+ *      - Special id: self, SELF-TYPE: treated specially by Cool but are not treated as keywords (handled implicitly) */
+{type_id}     { RETURN_STRING_AS(symbol, yytext, TYPEID); }
+{obj_id}      { RETURN_STRING_AS(symbol, yytext, OBJECTID) }
+
+ /* Special syntactic symbols: 
+ *      - given in fig 1 
+ *      - TODO*/
+
+ /* Keywords:
+  *     - All case incentive, (?i) in regex
+  *     - Except true/false, where 1st letter must be lower-case*/
+
+
+
+ /* Strings */
+ /* Comments */
+ /* White Space */
 
 %%
