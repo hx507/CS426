@@ -37,7 +37,8 @@ extern int curr_lineno;
 
 extern YYSTYPE cool_yylval;
 
-#define RETURN_STRING_AS(field, val, type) {cool_yylval.field = inttable.add_string(val); return type;}
+#define RETURN_AS(field, val, type) {cool_yylval.field = val; return type;}
+#define RETURN_STRING_AS(field, val, type) RETURN_AS(field, stringtable.add_string(val), type)
 
 /*
  *  Add Your own definitions here
@@ -56,6 +57,8 @@ digit       [0-9]
 name_char   [A-Za-z0-9_] 
 type_id     [A-Z]{name_char}*
 obj_id      [a-z]{name_char}*
+/* any sequence of: blank (ascii 32), \n (newline, ascii 10), \f (form feed, ascii 12), \r (carriage return, ascii 13), \t (tab, ascii 9), \v (vertical tab, ascii 11) */
+white_space [\x32\n\f\r\t\v]*
 
 %%
 
@@ -74,9 +77,42 @@ obj_id      [a-z]{name_char}*
   *     with the correct line number
   */
 
- /* Integers: 
- *      - non-empty strings of digits 0-9 */
-{digit}+    { RETURN_STRING_AS(symbol, yytext, INT_CONST); }
+ /* Line number maintenance */
+\n {curr_lineno++;}
+
+ /* Integers: non-empty strings of digits 0-9 */
+{digit}+    { RETURN_AS(symbol, inttable.add_string(yytext), INT_CONST); }
+
+ /* Special syntactic symbols: given in fig 1 */
+ /* (single character symbols are represented by its ASCII val) */
+[+\-*/~<=();,{}.@] { return *yytext; }
+(<-) {return ASSIGN;}
+(<=)  {return LE;}
+(>=)  {return DARROW;}
+
+ /* Keywords: class, else, false, fi, if, in, inherits, isvoid, let, loop, pool, then, while, case, esac, new, of, not, true
+  *     - All case incentive, ?i: in regex
+  *     - Need to have higher priority than ids! */
+(?i:class)   { return CLASS; }
+(?i:else)    { return ELSE; }
+(?i:fi)      { return FI; }
+(?i:if)      { return IF; }
+(?i:in)      { return IN; }
+(?i:inherits) { return INHERITS; }
+(?i:isvoid)  { return ISVOID; }
+(?i:let)     { return LET; }
+(?i:loop)    { return LOOP; }
+(?i:pool)    { return POOL; }
+(?i:then)    { return THEN; }
+(?i:while)   { return WHILE; }
+(?i:case)    { return CASE; }
+(?i:esac)    { return ESAC; }
+(?i:new)     { return NEW; }
+(?i:of)      { return OF; }
+(?i:not)     { return NOT; }
+ /*     - Except true/false, where 1st letter must be lower-case */
+t(?i:ure)    { RETURN_AS(boolean, true, BOOL_CONST); }
+f(?i:alse)   { RETURN_AS(boolean, false, BOOL_CONST); }
 
  /* Identifiers: 
  *      - strings (other than keywords) consisting of letters, digits, and the underscore character 
@@ -86,18 +122,13 @@ obj_id      [a-z]{name_char}*
 {type_id}     { RETURN_STRING_AS(symbol, yytext, TYPEID); }
 {obj_id}      { RETURN_STRING_AS(symbol, yytext, OBJECTID) }
 
- /* Special syntactic symbols: 
- *      - given in fig 1 
- *      - TODO*/
-
- /* Keywords:
-  *     - All case incentive, (?i) in regex
-  *     - Except true/false, where 1st letter must be lower-case*/
 
 
 
  /* Strings */
  /* Comments */
- /* White Space */
+
+ /* White Space, maintain line-number and ignore other */
+{white_space} {}
 
 %%
