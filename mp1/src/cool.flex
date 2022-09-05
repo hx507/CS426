@@ -30,7 +30,7 @@ extern FILE *fin; /* we read from this file */
   if ( (result = fread( (char*)buf, sizeof(char), max_size, fin)) < 0) \
     YY_FATAL_ERROR( "read() in flex scanner failed");
 
-char string_buf[MAX_STR_CONST]; /* to assemble string constants */
+char string_buf[MAX_STR_CONST+1]; /* to assemble string constants */
 char *string_buf_ptr;
 
 extern int curr_lineno;
@@ -38,11 +38,19 @@ extern int curr_lineno;
 extern YYSTYPE cool_yylval;
 
 #define RETURN_AS(field, val, type) {cool_yylval.field = val; return type;}
+#define RETURN_ID_AS(field, val, type) RETURN_AS(field, idtable.add_string(val), type)
 #define RETURN_STRING_AS(field, val, type) RETURN_AS(field, stringtable.add_string(val), type)
+#define RETURN_AS_ERR(msg) RETURN_AS(error_msg, msg, ERROR);
+
+#define TRY_ADD_TO_BUF(c) { if(str_len>MAX_STR_CONST) \
+                                RETURN_AS_ERR("String literal too long");\
+                            string_buf[str_len++] = c;}
 
 /*
  *  Add Your own definitions here
  */
+int comment_depth = 0;
+int str_len = 0;
 
 %}
 
@@ -52,13 +60,18 @@ extern YYSTYPE cool_yylval;
  * Define names for regular expressions here.
  */
 
+/* Starting conditions for comments & strings */
+%x COMMENT_START
+%x STRING_START
+
+
 digit       [0-9]
 /* characters valid to be used in naming: letters, digit, underscore */
 name_char   [A-Za-z0-9_] 
 type_id     [A-Z]{name_char}*
 obj_id      [a-z]{name_char}*
 /* any sequence of: blank (ascii 32), \n (newline, ascii 10), \f (form feed, ascii 12), \r (carriage return, ascii 13), \t (tab, ascii 9), \v (vertical tab, ascii 11) */
-white_space [\x32\n\f\r\t\v]*
+white_space [ \n\f\r\t\v]
 
 %%
 
@@ -80,15 +93,18 @@ white_space [\x32\n\f\r\t\v]*
  /* Line number maintenance */
 \n {curr_lineno++;}
 
+
  /* Integers: non-empty strings of digits 0-9 */
 {digit}+    { RETURN_AS(symbol, inttable.add_string(yytext), INT_CONST); }
 
+
  /* Special syntactic symbols: given in fig 1 */
  /* (single character symbols are represented by its ASCII val) */
-[+\-*/~<=();,{}.@] { return *yytext; }
+[+\-*/~<=();,{}.@:] { return *yytext; }
 (<-) {return ASSIGN;}
 (<=)  {return LE;}
 (>=)  {return DARROW;}
+
 
  /* Keywords: class, else, false, fi, if, in, inherits, isvoid, let, loop, pool, then, while, case, esac, new, of, not, true
   *     - All case incentive, ?i: in regex
@@ -114,21 +130,63 @@ white_space [\x32\n\f\r\t\v]*
 t(?i:ure)    { RETURN_AS(boolean, true, BOOL_CONST); }
 f(?i:alse)   { RETURN_AS(boolean, false, BOOL_CONST); }
 
+
  /* Identifiers: 
  *      - strings (other than keywords) consisting of letters, digits, and the underscore character 
  *      - Type id: begin with a capital letter
  *      - Object id: begin with a lower case letter 
  *      - Special id: self, SELF-TYPE: treated specially by Cool but are not treated as keywords (handled implicitly) */
-{type_id}     { RETURN_STRING_AS(symbol, yytext, TYPEID); }
-{obj_id}      { RETURN_STRING_AS(symbol, yytext, OBJECTID) }
-
-
+{type_id}     { RETURN_ID_AS(symbol, yytext, TYPEID); }
+{obj_id}      { RETURN_ID_AS(symbol, yytext, OBJECTID) }
 
 
  /* Strings */
- /* Comments */
+\"                    { str_len=0; BEGIN(STRING_START); }
 
- /* White Space, maintain line-number and ignore other */
+<STRING_START>\n      { BEGIN(0); curr_lineno++; RETURN_AS_ERR("Unterminated string constant"); }
+<STRING_START><<EOF>> { BEGIN(0); RETURN_AS_ERR("Unterminated string constant"); }
+<STRING_START>\"      { BEGIN(0);
+                        string_buf[str_len]=0; 
+                        RETURN_STRING_AS(symbol, string_buf, STR_CONST); }
+ /* Special escaped characters in string */
+<STRING_START>\\b     { TRY_ADD_TO_BUF('\b'); }
+<STRING_START>\\t     { TRY_ADD_TO_BUF('\t'); }
+<STRING_START>\\n     { TRY_ADD_TO_BUF('\n'); }
+<STRING_START>\\f     { TRY_ADD_TO_BUF('\f'); }
+<STRING_START>\\(\n)  { TRY_ADD_TO_BUF('\n'); curr_lineno++; }
+ /* other escapes are treated as \x -> x */
+<STRING_START>\\.     { TRY_ADD_TO_BUF(yytext[1]); }
+<STRING_START>.       { TRY_ADD_TO_BUF(*yytext); }
+
+
+ /* Comments */
+ /* Haskell style comments: -- this is a comment */
+(--[^\n]*) {}
+
+ /* Cool style comments: (* this is a comment *) 
+  *     - maintain comment_depth to support nested comments, exit when depth=0*/
+"(\*" { BEGIN(COMMENT_START); comment_depth++;}
+
+<COMMENT_START>"\n"     { curr_lineno++; }
+<COMMENT_START>"(\*"    { comment_depth++;}
+<COMMENT_START><<EOF>>  { comment_depth=0; BEGIN(0); RETURN_AS_ERR("EOF in comment"); }
+<COMMENT_START>. { /* ignore other stuff in comment */ }
+
+<COMMENT_START>"\*\)"   { comment_depth--; if(comment_depth==0) BEGIN(0);}
+
+ /* Detect extra closing comment */
+"\*\)" {RETURN_AS_ERR("Unmatched closing comment '*)'");}
+
+
+ /* Detect extra closing comment */
+
+
+
+ /* White Space, ignore */
 {white_space} {}
+
+
+ /* Invalid character */
+. { RETURN_AS_ERR(yytext);}
 
 %%
