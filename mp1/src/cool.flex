@@ -127,7 +127,7 @@ white_space [ \n\f\r\t\v]
 (?i:of)      { return OF; }
 (?i:not)     { return NOT; }
  /*     - Except true/false, where 1st letter must be lower-case */
-t(?i:ure)    { RETURN_AS(boolean, true, BOOL_CONST); }
+t(?i:rue)    { RETURN_AS(boolean, true, BOOL_CONST); }
 f(?i:alse)   { RETURN_AS(boolean, false, BOOL_CONST); }
 
 
