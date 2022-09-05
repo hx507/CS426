@@ -103,8 +103,10 @@ extern int VERBOSE_ERRORS;
 %type <formals> formal_list
 %type <formals> non_empty_formal_list
 %type <expression> expression
-%type <expressions> expression_list
-%type <expressions> non_empty_expression_list
+%type <expressions> param_list
+%type <expressions> non_empty_param_list
+%type <expressions> stmt_list
+%type <expressions> non_empty_stmt_list
 
 /* Precedence declarations go here. */
 
@@ -140,7 +142,7 @@ feature_list
 non_empty_feature_list
         : feature ';' 
                 { $$ = single_Features($1); }
-        | feature_list feature 
+        | non_empty_feature_list feature 
                 { $$ = append_Features($1, single_Features($2)); }
         ;
 
@@ -160,27 +162,51 @@ formal_list
 non_empty_formal_list
         : formal
             { $$ = single_Formals($1); }
-        | formal_list ',' formal
-            { $$ = append_Formals(formal_list($1), single_Formals($3)); }
+        | non_empty_formal_list ',' formal
+            { $$ = append_Formals($1, single_Formals($3)); }
 
 formal: OBJECTID ':' TYPEID
                 { $$ = formal($1, $3); }
 
-expression_list
+param_list
         : /* empty */
             { $$ = nil_Expressions(); }
-        | non_empty_expression_list
+        | non_empty_param_list
             { $$ = $1; }
-non_empty_expression_list
+non_empty_param_list
         : expression
             { $$ = single_Expressions($1); }
-        | expression_list ',' expression
-            { $$ = append_Expressions(expression_list($1), single_Expressions($3)); }
+        | non_empty_param_list ',' expression
+            { $$ = append_Expressions($1, single_Expressions($3)); }
+
+stmt_list
+        : /* empty */
+            { $$ = nil_Expressions(); }
+        | non_empty_stmt_list
+            { $$ = $1; }
+non_empty_stmt_list
+        : expression ';'
+            { $$ = single_Expressions($1); }
+        | non_empty_stmt_list expression
+            { $$ = append_Expressions($1, single_Expressions($2)); }
+
 expression
     : OBJECTID ASSIGN expression
         { $$ = assign($1, $3); }
-    | expression '.' OBJECTID '(' expression_list ')'
+    /* dispatches */
+    | expression '.' OBJECTID '(' param_list ')'
         { $$ = dispatch($1, $3, $5); }
+    | expression '@' TYPEID '.' OBJECTID '(' param_list ')'
+        { $$ = static_dispatch($1, $3, $5, $7); }
+    | OBJECTID '(' param_list ')' /* shorthand for self.method */
+        { $$ = dispatch(object(idtable.add_string("self")), $1, $3);  }
+    /* control flows */
+    | IF expression THEN expression ELSE expression FI
+        { $$ = cond($2, $4, $6); }
+    | WHILE expression LOOP expression POOL
+        { $$ = loop($2, $4); }
+    | '{' stmt_list '}'
+        { $$ = block($2); }
 
 
 /* end of grammar */
