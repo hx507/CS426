@@ -53,13 +53,13 @@ class CellularAutomaton inherits IO {
         then
             "X"
         else
-            '.'
+            "."
         fi
     };
    
     evolve() : SELF_TYPE {
         (let position : Int in
-        (let num : Int <- num_cells[] in
+        (let num : Int <- num_cells() in
         (let temp : String in
             {
                 while position < num loop
@@ -74,6 +74,7 @@ class CellularAutomaton inherits IO {
         ) ) )
     };
 };
+
 class Main {
     cells : CellularAutomaton;
    
@@ -82,37 +83,15 @@ class Main {
             cells <- (new CellularAutomaton).init("         X         ");
             cells.print();
             (let countdown : Int <- 20 in
-                while countdown > 0 loop
+                while 0 < countdown loop
                     {
                         cells.evolve();
                         cells.print();
                         countdown <- countdown - 1;
-                    
+                    }
                 pool
-            );  (* end let countdown
+            );
             self;
         }
     };
 };
-*)
-            
--- Ignore me -- fdas --
---
-
--- Boolean tests
-true True tRuE tRUE
-false False fAlSe fALSE
-
--- Special symbol tests
--> => = == <= >=
-
-1. "\c\a\n"
-2. "\""
-3. "aaaa\
-bbb"
-4. ""\
-5. "\"
-6."\t\
-aaa"
-
-"aaa

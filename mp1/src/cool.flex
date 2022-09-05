@@ -103,7 +103,7 @@ white_space [ \n\f\r\t\v]
 [+\-*/~<=();,{}.@:] { return *yytext; }
 (<-) {return ASSIGN;}
 (<=)  {return LE;}
-(>=)  {return DARROW;}
+(=>)  {return DARROW;}
 
 
  /* Keywords: class, else, false, fi, if, in, inherits, isvoid, let, loop, pool, then, while, case, esac, new, of, not, true
