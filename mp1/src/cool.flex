@@ -178,10 +178,6 @@ f(?i:alse)   { RETURN_AS(boolean, false, BOOL_CONST); }
 "\*\)" {RETURN_AS_ERR("Unmatched closing comment '*)'");}
 
 
- /* Detect extra closing comment */
-
-
-
  /* White Space, ignore */
 {white_space} {}
 
