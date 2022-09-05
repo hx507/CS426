@@ -92,12 +92,19 @@ extern int VERBOSE_ERRORS;
       documentation for details). */
 
 /* Declare types for the grammar's non-terminals. */
+/* For lists, the non-empty variant is used to enforce connectors. */
 %type <program> program
 %type <classes> class_list
 %type <class_> class
-
-/* You will want to change the following line. */
-%type <features> dummy_feature_list
+%type <feature> feature
+%type <features> feature_list
+%type <features> non_empty_feature_list
+%type <formal> formal
+%type <formals> formal_list
+%type <formals> non_empty_formal_list
+%type <expression> expression
+%type <expressions> expression_list
+%type <expressions> non_empty_expression_list
 
 /* Precedence declarations go here. */
 
@@ -117,17 +124,64 @@ class_list
         ;
 
 /* If no parent is specified, the class inherits from the Object class. */
-class  : CLASS TYPEID '{' dummy_feature_list '}' ';'
+class  : CLASS TYPEID '{' feature_list '}' ';'
                 { $$ = class_($2,idtable.add_string("Object"),$4,
                               stringtable.add_string(curr_filename)); }
-        | CLASS TYPEID INHERITS TYPEID '{' dummy_feature_list '}' ';'
+        | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
                 { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
         ;
 
 /* Feature list may be empty, but no empty features in list. */
-dummy_feature_list:        /* empty */
-                {  $$ = nil_Features(); }
+feature_list
+        : /* empty */
+                { $$ = nil_Features(); }
+        | non_empty_feature_list
+                { $$ = $1; }
+non_empty_feature_list
+        : feature ';' 
+                { $$ = single_Features($1); }
+        | feature_list feature 
+                { $$ = append_Features($1, single_Features($2)); }
         ;
+
+feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expression '}'
+                { $$ = method($1, $3, $6, $8); }
+        | OBJECTID ':' TYPEID
+                { $$ = attr($1, $3, no_expr()); }
+        | OBJECTID ':' TYPEID DARROW expression
+                { $$ = attr($1, $3, $5); }
+
+ /* TODO: test [f1,f2,] and [,f1,f2] */
+formal_list
+        : /* empty */
+            { $$ = nil_Formals(); }
+        | non_empty_formal_list
+            { $$ = $1; }
+non_empty_formal_list
+        : formal
+            { $$ = single_Formals($1); }
+        | formal_list ',' formal
+            { $$ = append_Formals(formal_list($1), single_Formals($3)); }
+
+formal: OBJECTID ':' TYPEID
+                { $$ = formal($1, $3); }
+
+expression_list
+        : /* empty */
+            { $$ = nil_Expressions(); }
+        | non_empty_expression_list
+            { $$ = $1; }
+non_empty_expression_list
+        : expression
+            { $$ = single_Expressions($1); }
+        | expression_list ',' expression
+            { $$ = append_Expressions(expression_list($1), single_Expressions($3)); }
+expression
+    : OBJECTID ASSIGN expression
+        { $$ = assign($1, $3); }
+    | expression '.' OBJECTID '(' expression_list ')'
+        { $$ = dispatch($1, $3, $5); }
+
 
 /* end of grammar */
 %%
