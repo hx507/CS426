@@ -154,8 +154,8 @@ f(?i:alse)   { RETURN_AS(boolean, false, BOOL_CONST); }
 <STRING_START>\\n     { TRY_ADD_TO_BUF('\n'); }
 <STRING_START>\\f     { TRY_ADD_TO_BUF('\f'); }
 <STRING_START>\\(\n)  { TRY_ADD_TO_BUF('\n'); curr_lineno++; }
- /* For \0, consume the remaining string and error */
-<STRING_START>\\0[^\"]*\"     { BEGIN(0); RETURN_AS_ERR("Found \\0 in string"); }
+ /* For \0, consume the remaining string and error, note \\0 should be treated as 0 */
+<STRING_START>\0[^\"]*\"     { BEGIN(0); RETURN_AS_ERR("Found \\0 in string"); }
  /* other escapes are treated as \x -> x */
 <STRING_START>\\.     { TRY_ADD_TO_BUF(yytext[1]); }
 <STRING_START>.       { TRY_ADD_TO_BUF(*yytext); }
