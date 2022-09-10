@@ -95,10 +95,11 @@ class Main {
     };
 };
 *)
-            
+
+(* aaa (* bbb nested comment test *) *)
 -- Ignore me -- fdas --
 --
-
+TODO: test for string too long
 -- Boolean tests
 true True tRuE tRUE
 false False fAlSe fALSE
