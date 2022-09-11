@@ -10,7 +10,11 @@
 #include "utilities.h"
 
 /* Add your own C declarations here */
-#define show_err(msg) fprintf(stderr, VERBOSE_ERRORS ? msg : "");
+#define show_err(msg) if(VERBOSE_ERRORS){\
+    fprintf(stderr, "\tSyntax err: ");\
+    fprintf(stderr, msg);\
+    fprintf(stderr, "\n");}
+
 
 /************************************************************************/
 /*                DONT CHANGE ANYTHING IN THIS SECTION                  */
@@ -139,6 +143,12 @@ class_list
                 { $$ = single_Classes($1); }
         | class_list class /* several classes */
                 { $$ = append_Classes($1,single_Classes($2)); }
+        /* error handling */
+        | error
+                { show_err("Malformed class, skip to next class!"); yyclearin; $$={}; }
+        | class_list error
+                { show_err("Malformed class, skip to next class!"); yyclearin; $$=$1; }
+        ;
 
 /* If no parent is specified, the class inherits from the Object class. */
 class  : CLASS TYPEID '{' feature_list '}' ';'
@@ -148,13 +158,13 @@ class  : CLASS TYPEID '{' feature_list '}' ';'
                 { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
         /* error handling */
         | CLASS error '{' feature_list '}' ';'
-                { yyclearin; $$={}; }
+                { show_err("Malformed class header, skip to next class!"); yyclearin; $$={}; }
         | CLASS TYPEID '{' error '}' ';'
-                { yyclearin; $$={}; }
+                { show_err("Malformed class feature list, skip to next class!"); yyclearin; $$={}; }
         | CLASS error '{' error '}' ';'
-                { yyclearin; $$={}; }
+                { show_err("Malformed class, skip to next class!"); yyclearin; $$={}; }
         | CLASS TYPEID INHERITS TYPEID '{' error '}' ';'
-                { yyclearin; $$={}; }
+                { show_err("Malformed class feature list, skip to next class!"); yyclearin; $$={}; }
         ;
 
 /* Feature list may be empty, but no empty features in list. */
@@ -171,7 +181,7 @@ non_empty_feature_list
                 { $$ = append_Features($1, single_Features($2)); }
         /* error handling */
         | error ';' 
-                { yyclearin; $$=nil_Features(); }
+                { show_err("Feature list item is bad, skip to next!"); yyclearin; $$=nil_Features(); }
         ;
 
 feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expression '}'
@@ -219,7 +229,9 @@ non_empty_stmt_list
             { $$ = append_Expressions($1, single_Expressions($2)); }
         /* error handling */
         | error ';' 
-            { yyclearin; $$=nil_Expressions(); }
+            { show_err("Stmt in block is bad, skip!"); yyclearin; $$=nil_Expressions(); }
+        | non_empty_stmt_list error ';'
+            { show_err("Stmt in block is bad, skip!"); yyclearin; $$=$1; }
         ;
 
 case_branch
@@ -249,9 +261,9 @@ let_entries
         { $$ = let($1, $3, $5, $7); }
     /* error handling, need to recover next let entry */
     | error ',' let_entries
-        { ; $$=$3; }
+        { show_err("Bad let entry, skip to next!");; $$=$3; }
     | error in_expr
-        { ; $$=$2; }
+        { show_err("Malformed let entries, ignored (all of them are bad?)!");; $$=$2; }
     ;
 
 expression

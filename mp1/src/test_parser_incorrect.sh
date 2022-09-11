@@ -1,5 +1,5 @@
 echo "Expected:"
-make parser && ./lexer $1 | ../reference-binaries/parser
+make parser && ../reference-binaries/lexer $1 | ../reference-binaries/parser -v
 echo "==========================================================="
 echo "Actual:"
-make parser && ./lexer $1 | ./parser
+make parser && ./lexer $1 | ./parser -v
