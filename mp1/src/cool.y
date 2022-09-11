@@ -161,8 +161,7 @@ feature_list
                 { $$ = nil_Features(); }
         | non_empty_feature_list
                 { $$ = $1; }
-        | error ';' 
-                { yyclearin; $$={}; }
+        ;
 non_empty_feature_list
         : feature ';' 
                 { $$ = single_Features($1); }
@@ -170,7 +169,7 @@ non_empty_feature_list
                 { $$ = append_Features($1, single_Features($2)); }
         /* error handling */
         | error ';' 
-                { yyclearin; $$={}; }
+                { yyclearin; $$=nil_Features(); }
         ;
 
 feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expression '}'
@@ -179,31 +178,37 @@ feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expression '}'
                 { $$ = attr($1, $3, no_expr()); }
         | OBJECTID ':' TYPEID ASSIGN expression
                 { $$ = attr($1, $3, $5); }
+        ;
 
 formal_list
         : /* empty */
             { $$ = nil_Formals(); }
         | non_empty_formal_list
             { $$ = $1; }
+        ;
 non_empty_formal_list
         : formal
             { $$ = single_Formals($1); }
         | non_empty_formal_list ',' formal
             { $$ = append_Formals($1, single_Formals($3)); }
+        ;
 
 formal: OBJECTID ':' TYPEID
             { $$ = formal($1, $3); }
+        ;
 
 param_list
         : /* empty */
             { $$ = nil_Expressions(); }
         | non_empty_param_list
             { $$ = $1; }
+        ;
 non_empty_param_list
         : expression
             { $$ = single_Expressions($1); }
         | non_empty_param_list ',' expression
             { $$ = append_Expressions($1, single_Expressions($3)); }
+        ;
 
 non_empty_stmt_list
         : expression ';'
@@ -213,20 +218,24 @@ non_empty_stmt_list
         /* error handling */
         | error ';' 
             { yyclearin; $$=nil_Expressions(); }
+        ;
 
 case_branch
     : OBJECTID ':' TYPEID DARROW expression ';'
         { $$ = branch($1, $3, $5); }
     | OBJECTID ':' TYPEID ';'
         { $$ = branch($1, $3, no_expr()); }
+    ;
 non_empty_case_list
     : case_branch
         { $$ = single_Cases($1); }
     | non_empty_case_list case_branch
         { $$ = append_Cases($1, single_Cases($2)); }
+    ;
 
 in_expr : IN expression %prec LET_PREC
             { $$ = $2; }
+    ;
 let_entries 
     : OBJECTID ':' TYPEID in_expr
         { $$ = let($1, $3, no_expr(), $4); }
@@ -243,6 +252,7 @@ let_entries
         { yyclearin; $$=$3; }
     | error
         { yyclearin; $$={}; }
+    ;
 
 expression
     : OBJECTID ASSIGN expression
@@ -302,6 +312,7 @@ expression
     | INT_CONST { $$ = int_const($1); }
     | STR_CONST { $$ = string_const($1); }
     | BOOL_CONST { $$ = bool_const($1); }
+    ;
 
 
 /* end of grammar */

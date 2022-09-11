@@ -16,6 +16,10 @@ Class D inherits A {
     fdsa
 };
 
+(* error:  a is not a type identifier *)
+Class C inherits a {
+};
+
 (* error:  closing brace is missing *)
 Class E inherits A {
 ;
