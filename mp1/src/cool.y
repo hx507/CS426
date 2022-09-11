@@ -161,6 +161,8 @@ feature_list
                 { $$ = nil_Features(); }
         | non_empty_feature_list
                 { $$ = $1; }
+        | error ';' 
+                { yyclearin; $$={}; }
 non_empty_feature_list
         : feature ';' 
                 { $$ = single_Features($1); }
