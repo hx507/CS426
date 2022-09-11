@@ -1762,7 +1762,7 @@ yyreduce:
 
   case 52:
 #line 284 "cool.y" /* yacc.c:1646  */
-    { (yyval.expression) = neg((yyvsp[0].expression)); }
+    { (yyval.expression) = comp((yyvsp[0].expression)); }
 #line 1767 "cool.tab.c" /* yacc.c:1646  */
     break;
 
@@ -1816,7 +1816,7 @@ yyreduce:
 
   case 61:
 #line 306 "cool.y" /* yacc.c:1646  */
-    { (yyval.expression) = comp((yyvsp[0].expression)); }
+    { (yyval.expression) = neg((yyvsp[0].expression)); }
 #line 1821 "cool.tab.c" /* yacc.c:1646  */
     break;
 
@@ -2098,4 +2098,3 @@ void yyerror(const char *s)
   }
 }
 
-                     

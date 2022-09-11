@@ -281,7 +281,7 @@ expression
     | ISVOID expression
         { $$ = isvoid($2); }
     | NOT expression
-        { $$ = neg($2); }
+        { $$ = comp($2); }
     | LET let_entries
         { $$ = $2; }
 
@@ -303,7 +303,7 @@ expression
 
     /* unary op */
     | '~' expression
-        { $$ = comp($2); }
+        { $$ = neg($2); }
     | '(' expression ')'
         { $$ = $2; }
 
