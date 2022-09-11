@@ -137,12 +137,6 @@ class_list
                 { $$ = single_Classes($1); }
         | class_list class /* several classes */
                 { $$ = append_Classes($1,single_Classes($2)); }
-        /* error handling */
-        | class_list error /* several classes */
-                { $$ = $1;}
-        | error
-                { $$ = nil_Classes();}
-        ;
 
 /* If no parent is specified, the class inherits from the Object class. */
 class  : CLASS TYPEID '{' feature_list '}' ';'
@@ -155,13 +149,7 @@ class  : CLASS TYPEID '{' feature_list '}' ';'
                 { yyclearin; $$={}; }
         | CLASS TYPEID '{' error '}' ';'
                 { yyclearin; $$={}; }
-        | CLASS TYPEID error TYPEID '{' feature_list '}' ';'
-                { yyclearin; $$={}; }
-        | CLASS error INHERITS TYPEID '{' feature_list '}' ';'
-                { yyclearin; $$={}; }
-        | CLASS TYPEID INHERITS error '{' feature_list '}' ';'
-                { yyclearin; $$={}; }
-        | CLASS TYPEID INHERITS TYPEID '{' error '}' ';'
+        | CLASS error '{' error '}' ';'
                 { yyclearin; $$={}; }
         ;
 
@@ -178,16 +166,14 @@ non_empty_feature_list
                 { $$ = append_Features($1, single_Features($2)); }
         /* error handling */
         | error ';' 
-                { yyclearin; $$=nil_Features(); }
-        | non_empty_feature_list error ';'
-                { yyclearin; $$=$1; }
+                { yyclearin; $$={}; }
         ;
 
 feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expression '}'
                 { $$ = method($1, $3, $6, $8); }
         | OBJECTID ':' TYPEID
                 { $$ = attr($1, $3, no_expr()); }
-        | OBJECTID ':' TYPEID DARROW expression
+        | OBJECTID ':' TYPEID ASSIGN expression
                 { $$ = attr($1, $3, $5); }
 
 formal_list
@@ -221,10 +207,8 @@ non_empty_stmt_list
         | non_empty_stmt_list expression ';'
             { $$ = append_Expressions($1, single_Expressions($2)); }
         /* error handling */
-        | non_empty_stmt_list error ';' 
-            { yyclearin; $$=$1; }
         | error ';' 
-            { yyclearin; $$=nil_Expressions(); }
+            { yyclearin; $$={}; }
 
 case_branch
     : OBJECTID ':' TYPEID DARROW expression ';'
@@ -247,36 +231,9 @@ let_entries
     | OBJECTID ':' TYPEID ASSIGN expression ',' let_entries
         { $$ = let($1, $3, $5, $7); }
     /* error handling, need to recover next let entry */
-    | error ':' TYPEID IN expression %prec LET_PREC
-        { yyclearin; $$=$5; }
-    | OBJECTID ':' error IN expression %prec LET_PREC
-        { yyclearin; $$=$5; }
-    | OBJECTID ':' TYPEID IN error %prec LET_PREC
+    | error ',' let_entries %prec LET_PREC
         { yyclearin; $$={}; }
-
-    | error ':' TYPEID ASSIGN expression IN expression %prec LET_PREC
-        { yyclearin; $$=$7; }
-    | OBJECTID ':' error ASSIGN expression IN expression %prec LET_PREC
-        { yyclearin; $$=$7; }
-    | OBJECTID ':' TYPEID ASSIGN error IN expression %prec LET_PREC
-        { yyclearin; $$=$7; }
-    | OBJECTID ':' TYPEID ASSIGN expression IN error %prec LET_PREC
-        { yyclearin; $$={}; }
-
-    | error ':' TYPEID ',' let_entries
-        { yyclearin; $$=$5; }
-    | OBJECTID ':' error ',' let_entries
-        { yyclearin; $$=$5; }
-    | OBJECTID ':' TYPEID ',' error
-        { yyclearin; $$={}; }
-
-    | error ':' TYPEID ASSIGN expression ',' let_entries
-        { yyclearin; $$=$7; }
-    | OBJECTID ':' error ASSIGN expression ',' let_entries
-        { yyclearin; $$=$7; }
-    | OBJECTID ':' TYPEID ASSIGN error ',' let_entries
-        { yyclearin; $$=$7; }
-    | OBJECTID ':' TYPEID ASSIGN expression ',' error
+    | error IN expression %prec LET_PREC
         { yyclearin; $$={}; }
 
 expression
