@@ -137,6 +137,11 @@ class_list
                 { $$ = single_Classes($1); }
         | class_list class /* several classes */
                 { $$ = append_Classes($1,single_Classes($2)); }
+        /* error handling */
+        | class_list error /* several classes */
+                { $$ = $1;}
+        | error
+                { $$ = nil_Classes();}
         ;
 
 /* If no parent is specified, the class inherits from the Object class. */
