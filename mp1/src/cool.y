@@ -246,22 +246,33 @@ let_entries
         { yyclearin; $$=$5; }
     | OBJECTID ':' error IN expression %prec LET_PREC
         { yyclearin; $$=$5; }
+    | OBJECTID ':' TYPEID IN error %prec LET_PREC
+        { yyclearin; $$={}; }
+
     | error ':' TYPEID ASSIGN expression IN expression %prec LET_PREC
         { yyclearin; $$=$7; }
     | OBJECTID ':' error ASSIGN expression IN expression %prec LET_PREC
         { yyclearin; $$=$7; }
     | OBJECTID ':' TYPEID ASSIGN error IN expression %prec LET_PREC
         { yyclearin; $$=$7; }
+    | OBJECTID ':' TYPEID ASSIGN expression IN error %prec LET_PREC
+        { yyclearin; $$={}; }
+
     | error ':' TYPEID ',' let_entries
         { yyclearin; $$=$5; }
     | OBJECTID ':' error ',' let_entries
         { yyclearin; $$=$5; }
+    | OBJECTID ':' TYPEID ',' error
+        { yyclearin; $$={}; }
+
     | error ':' TYPEID ASSIGN expression ',' let_entries
         { yyclearin; $$=$7; }
     | OBJECTID ':' error ASSIGN expression ',' let_entries
         { yyclearin; $$=$7; }
     | OBJECTID ':' TYPEID ASSIGN error ',' let_entries
         { yyclearin; $$=$7; }
+    | OBJECTID ':' TYPEID ASSIGN expression ',' error
+        { yyclearin; $$={}; }
 
 expression
     : OBJECTID ASSIGN expression
@@ -293,6 +304,8 @@ expression
         { $$ = neg($2); }
     | LET let_entries
         { $$ = $2; }
+    | LET error
+        { yyclearin; $$ = {}; }
 
     /* binary op */
     | expression '+' expression
