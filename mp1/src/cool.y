@@ -10,6 +10,7 @@
 #include "utilities.h"
 
 /* Add your own C declarations here */
+#define show_err(msg) fprintf(stderr, VERBOSE_ERRORS ? msg : "");
 
 /************************************************************************/
 /*                DONT CHANGE ANYTHING IN THIS SECTION                  */
@@ -107,6 +108,7 @@ extern int VERBOSE_ERRORS;
 %type <expressions> non_empty_stmt_list
 %type <case_> case_branch
 %type <cases> non_empty_case_list
+%type <expression> in_expr
 %type <expression> let_entries
 
 /* Precedence declarations go here, lowest to highest */
@@ -208,7 +210,7 @@ non_empty_stmt_list
             { $$ = append_Expressions($1, single_Expressions($2)); }
         /* error handling */
         | error ';' 
-            { yyclearin; $$={}; }
+            { yyclearin; $$=nil_Expressions(); }
 
 case_branch
     : OBJECTID ':' TYPEID DARROW expression ';'
@@ -221,19 +223,23 @@ non_empty_case_list
     | non_empty_case_list case_branch
         { $$ = append_Cases($1, single_Cases($2)); }
 
+in_expr : IN expression %prec LET_PREC
+            { $$ = $2; }
 let_entries 
-    : OBJECTID ':' TYPEID IN expression %prec LET_PREC
-        { $$ = let($1, $3, no_expr(), $5); }
-    | OBJECTID ':' TYPEID ASSIGN expression IN expression %prec LET_PREC
-        { $$ = let($1, $3, $5, $7); }
+    : OBJECTID ':' TYPEID in_expr
+        { $$ = let($1, $3, no_expr(), $4); }
+    | OBJECTID ':' TYPEID ASSIGN expression in_expr
+        { $$ = let($1, $3, $5, $6); }
     | OBJECTID ':' TYPEID ',' let_entries
         { $$ = let($1, $3, no_expr(), $5); }
     | OBJECTID ':' TYPEID ASSIGN expression ',' let_entries
         { $$ = let($1, $3, $5, $7); }
     /* error handling, need to recover next let entry */
-    | error ',' let_entries %prec LET_PREC
-        { yyclearin; $$={}; }
-    | error IN expression %prec LET_PREC
+    | error ',' let_entries
+        { yyclearin; $$=$3; }
+    | error IN expression
+        { yyclearin; $$=$3; }
+    | error
         { yyclearin; $$={}; }
 
 expression
@@ -266,8 +272,6 @@ expression
         { $$ = neg($2); }
     | LET let_entries
         { $$ = $2; }
-    | LET error
-        { yyclearin; $$ = {}; }
 
     /* binary op */
     | expression '+' expression
