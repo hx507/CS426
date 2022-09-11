@@ -153,6 +153,8 @@ class  : CLASS TYPEID '{' feature_list '}' ';'
                 { yyclearin; $$={}; }
         | CLASS error '{' error '}' ';'
                 { yyclearin; $$={}; }
+        | CLASS TYPEID INHERITS TYPEID '{' error '}' ';'
+                { yyclearin; $$={}; }
         ;
 
 /* Feature list may be empty, but no empty features in list. */
@@ -235,6 +237,7 @@ non_empty_case_list
 
 in_expr : IN expression %prec LET_PREC
             { $$ = $2; }
+        | IN error { yyclearin; $$={}; }
     ;
 let_entries 
     : OBJECTID ':' TYPEID in_expr
@@ -248,10 +251,8 @@ let_entries
     /* error handling, need to recover next let entry */
     | error ',' let_entries
         { yyclearin; $$=$3; }
-    | error IN expression
-        { yyclearin; $$=$3; }
-    | error
-        { yyclearin; $$={}; }
+    | error in_expr
+        { yyclearin; $$=$2; }
     ;
 
 expression
