@@ -1326,7 +1326,7 @@ YY_RULE_SETUP
 #line 156 "cool.flex"
 { TRY_ADD_TO_BUF('\n'); curr_lineno++; }
 	YY_BREAK
-/* For \0, consume the remaining string and error */
+/* For \0, consume the remaining string and error, note \\0 should be treated as 0 */
 case 36:
 /* rule 36 can match eol */
 YY_RULE_SETUP

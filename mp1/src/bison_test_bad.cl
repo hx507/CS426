@@ -11,6 +11,10 @@
 class A {
 };
 
+(* error:  multiple errors *)
+Class cc inherts A {
+};
+
 (* error:  b is not a type identifier *)
 Class b inherits A {
 };
