@@ -109,7 +109,18 @@ extern int VERBOSE_ERRORS;
 %type <case_> case_branch
 %type <cases> non_empty_case_list
 
-/* Precedence declarations go here. */
+/* Precedence declarations go here, lowest to highest */
+/* All binary operations are left-associative, with the exception of assignment, which is right-associative,
+and the three comparison operations, which do not associate. */
+%right ASSIGN
+%left NOT
+%nonassoc LE '<' '='
+%left '+' '-'
+%left '*' '/'
+%left ISVOID
+%left '~'
+%left '@'
+%left '.'
 
 
 %%
@@ -208,7 +219,7 @@ expression
         { $$ = dispatch(object(idtable.add_string("self")), $1, $3);  }
 
     /* control flows */
-    /* TODO: case, let */
+    /* TODO: let, error handling, precedence */
     | IF expression THEN expression ELSE expression FI
         { $$ = cond($2, $4, $6); }
     | WHILE expression LOOP expression POOL

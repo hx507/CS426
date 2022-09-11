@@ -5,19 +5,6 @@ Terminals unused in grammar
    ERROR
 
 
-State 57 conflicts: 9 shift/reduce
-State 60 conflicts: 9 shift/reduce
-State 64 conflicts: 9 shift/reduce
-State 78 conflicts: 9 shift/reduce
-State 86 conflicts: 9 shift/reduce
-State 89 conflicts: 9 shift/reduce
-State 90 conflicts: 9 shift/reduce
-State 91 conflicts: 9 shift/reduce
-State 92 conflicts: 9 shift/reduce
-State 93 conflicts: 9 shift/reduce
-State 94 conflicts: 9 shift/reduce
-
-
 Grammar
 
     0 $accept: program $end
@@ -467,9 +454,9 @@ State 33
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 51
 
@@ -516,9 +503,9 @@ State 38
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 53
 
@@ -537,9 +524,9 @@ State 39
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 54
 
@@ -558,9 +545,9 @@ State 40
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 55
 
@@ -586,9 +573,9 @@ State 42
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 57
 
@@ -640,57 +627,14 @@ State 47
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 60
 
 
 State 48
-
-   35 expression: '{' . non_empty_stmt_list '}'
-
-    IF          shift, and go to state 38
-    WHILE       shift, and go to state 39
-    CASE        shift, and go to state 40
-    NEW         shift, and go to state 41
-    ISVOID      shift, and go to state 42
-    STR_CONST   shift, and go to state 43
-    INT_CONST   shift, and go to state 44
-    BOOL_CONST  shift, and go to state 45
-    OBJECTID    shift, and go to state 46
-    NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
-
-    non_empty_stmt_list  go to state 61
-    expression           go to state 62
-
-
-State 49
-
-   47 expression: '(' . expression ')'
-
-    IF          shift, and go to state 38
-    WHILE       shift, and go to state 39
-    CASE        shift, and go to state 40
-    NEW         shift, and go to state 41
-    ISVOID      shift, and go to state 42
-    STR_CONST   shift, and go to state 43
-    INT_CONST   shift, and go to state 44
-    BOOL_CONST  shift, and go to state 45
-    OBJECTID    shift, and go to state 46
-    NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
-
-    expression  go to state 63
-
-
-State 50
 
    46 expression: '~' . expression
 
@@ -704,9 +648,52 @@ State 50
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
+
+    expression  go to state 61
+
+
+State 49
+
+   35 expression: '{' . non_empty_stmt_list '}'
+
+    IF          shift, and go to state 38
+    WHILE       shift, and go to state 39
+    CASE        shift, and go to state 40
+    NEW         shift, and go to state 41
+    ISVOID      shift, and go to state 42
+    STR_CONST   shift, and go to state 43
+    INT_CONST   shift, and go to state 44
+    BOOL_CONST  shift, and go to state 45
+    OBJECTID    shift, and go to state 46
+    NOT         shift, and go to state 47
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
+
+    non_empty_stmt_list  go to state 62
+    expression           go to state 63
+
+
+State 50
+
+   47 expression: '(' . expression ')'
+
+    IF          shift, and go to state 38
+    WHILE       shift, and go to state 39
+    CASE        shift, and go to state 40
+    NEW         shift, and go to state 41
+    ISVOID      shift, and go to state 42
+    STR_CONST   shift, and go to state 43
+    INT_CONST   shift, and go to state 44
+    BOOL_CONST  shift, and go to state 45
+    OBJECTID    shift, and go to state 46
+    NOT         shift, and go to state 47
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 64
 
@@ -725,14 +712,14 @@ State 51
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
     $default  reduce using rule 12 (feature)
 
@@ -759,14 +746,14 @@ State 53
 
     THEN  shift, and go to state 75
     LE    shift, and go to state 65
-    '.'   shift, and go to state 66
-    '@'   shift, and go to state 67
+    '<'   shift, and go to state 66
+    '='   shift, and go to state 67
     '+'   shift, and go to state 68
     '-'   shift, and go to state 69
     '*'   shift, and go to state 70
     '/'   shift, and go to state 71
-    '<'   shift, and go to state 72
-    '='   shift, and go to state 73
+    '@'   shift, and go to state 72
+    '.'   shift, and go to state 73
 
 
 State 54
@@ -784,14 +771,14 @@ State 54
 
     LOOP  shift, and go to state 76
     LE    shift, and go to state 65
-    '.'   shift, and go to state 66
-    '@'   shift, and go to state 67
+    '<'   shift, and go to state 66
+    '='   shift, and go to state 67
     '+'   shift, and go to state 68
     '-'   shift, and go to state 69
     '*'   shift, and go to state 70
     '/'   shift, and go to state 71
-    '<'   shift, and go to state 72
-    '='   shift, and go to state 73
+    '@'   shift, and go to state 72
+    '.'   shift, and go to state 73
 
 
 State 55
@@ -809,14 +796,14 @@ State 55
 
     OF   shift, and go to state 77
     LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
 
 State 56
@@ -839,25 +826,9 @@ State 57
    44           | expression . LE expression
    45           | expression . '=' expression
 
-    LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
-    '*'  shift, and go to state 70
-    '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
-    LE        [reduce using rule 37 (expression)]
-    '.'       [reduce using rule 37 (expression)]
-    '@'       [reduce using rule 37 (expression)]
-    '+'       [reduce using rule 37 (expression)]
-    '-'       [reduce using rule 37 (expression)]
-    '*'       [reduce using rule 37 (expression)]
-    '/'       [reduce using rule 37 (expression)]
-    '<'       [reduce using rule 37 (expression)]
-    '='       [reduce using rule 37 (expression)]
     $default  reduce using rule 37 (expression)
 
 
@@ -875,9 +846,9 @@ State 58
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 78
 
@@ -896,9 +867,9 @@ State 59
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     $default  reduce using rule 18 (param_list)
 
@@ -921,28 +892,38 @@ State 60
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
-    LE        [reduce using rule 38 (expression)]
-    '.'       [reduce using rule 38 (expression)]
-    '@'       [reduce using rule 38 (expression)]
-    '+'       [reduce using rule 38 (expression)]
-    '-'       [reduce using rule 38 (expression)]
-    '*'       [reduce using rule 38 (expression)]
-    '/'       [reduce using rule 38 (expression)]
-    '<'       [reduce using rule 38 (expression)]
-    '='       [reduce using rule 38 (expression)]
     $default  reduce using rule 38 (expression)
 
 
 State 61
+
+   29 expression: expression . '.' OBJECTID '(' param_list ')'
+   30           | expression . '@' TYPEID '.' OBJECTID '(' param_list ')'
+   39           | expression . '+' expression
+   40           | expression . '-' expression
+   41           | expression . '*' expression
+   42           | expression . '/' expression
+   43           | expression . '<' expression
+   44           | expression . LE expression
+   45           | expression . '=' expression
+   46           | '~' expression .
+
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
+
+    $default  reduce using rule 46 (expression)
+
+
+State 62
 
    23 non_empty_stmt_list: non_empty_stmt_list . expression ';'
    35 expression: '{' non_empty_stmt_list . '}'
@@ -957,15 +938,15 @@ State 61
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
     '}'         shift, and go to state 82
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '('         shift, and go to state 50
 
     expression  go to state 83
 
 
-State 62
+State 63
 
    22 non_empty_stmt_list: expression . ';'
    29 expression: expression . '.' OBJECTID '(' param_list ')'
@@ -979,40 +960,15 @@ State 62
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
+    '+'  shift, and go to state 68
+    '-'  shift, and go to state 69
+    '*'  shift, and go to state 70
+    '/'  shift, and go to state 71
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
     ';'  shift, and go to state 84
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
-    '*'  shift, and go to state 70
-    '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
-
-
-State 63
-
-   29 expression: expression . '.' OBJECTID '(' param_list ')'
-   30           | expression . '@' TYPEID '.' OBJECTID '(' param_list ')'
-   39           | expression . '+' expression
-   40           | expression . '-' expression
-   41           | expression . '*' expression
-   42           | expression . '/' expression
-   43           | expression . '<' expression
-   44           | expression . LE expression
-   45           | expression . '=' expression
-   47           | '(' expression . ')'
-
-    LE   shift, and go to state 65
-    ')'  shift, and go to state 85
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
-    '*'  shift, and go to state 70
-    '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
 
 
 State 64
@@ -1026,28 +982,18 @@ State 64
    43           | expression . '<' expression
    44           | expression . LE expression
    45           | expression . '=' expression
-   46           | '~' expression .
+   47           | '(' expression . ')'
 
     LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
-
-    LE        [reduce using rule 46 (expression)]
-    '.'       [reduce using rule 46 (expression)]
-    '@'       [reduce using rule 46 (expression)]
-    '+'       [reduce using rule 46 (expression)]
-    '-'       [reduce using rule 46 (expression)]
-    '*'       [reduce using rule 46 (expression)]
-    '/'       [reduce using rule 46 (expression)]
-    '<'       [reduce using rule 46 (expression)]
-    '='       [reduce using rule 46 (expression)]
-    $default  reduce using rule 46 (expression)
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
+    ')'  shift, and go to state 85
 
 
 State 65
@@ -1064,25 +1010,53 @@ State 65
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 86
 
 
 State 66
 
-   29 expression: expression '.' . OBJECTID '(' param_list ')'
+   43 expression: expression '<' . expression
 
-    OBJECTID  shift, and go to state 87
+    IF          shift, and go to state 38
+    WHILE       shift, and go to state 39
+    CASE        shift, and go to state 40
+    NEW         shift, and go to state 41
+    ISVOID      shift, and go to state 42
+    STR_CONST   shift, and go to state 43
+    INT_CONST   shift, and go to state 44
+    BOOL_CONST  shift, and go to state 45
+    OBJECTID    shift, and go to state 46
+    NOT         shift, and go to state 47
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
+
+    expression  go to state 87
 
 
 State 67
 
-   30 expression: expression '@' . TYPEID '.' OBJECTID '(' param_list ')'
+   45 expression: expression '=' . expression
 
-    TYPEID  shift, and go to state 88
+    IF          shift, and go to state 38
+    WHILE       shift, and go to state 39
+    CASE        shift, and go to state 40
+    NEW         shift, and go to state 41
+    ISVOID      shift, and go to state 42
+    STR_CONST   shift, and go to state 43
+    INT_CONST   shift, and go to state 44
+    BOOL_CONST  shift, and go to state 45
+    OBJECTID    shift, and go to state 46
+    NOT         shift, and go to state 47
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
+
+    expression  go to state 88
 
 
 State 68
@@ -1099,9 +1073,9 @@ State 68
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 89
 
@@ -1120,9 +1094,9 @@ State 69
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 90
 
@@ -1141,9 +1115,9 @@ State 70
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 91
 
@@ -1162,53 +1136,25 @@ State 71
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 92
 
 
 State 72
 
-   43 expression: expression '<' . expression
+   30 expression: expression '@' . TYPEID '.' OBJECTID '(' param_list ')'
 
-    IF          shift, and go to state 38
-    WHILE       shift, and go to state 39
-    CASE        shift, and go to state 40
-    NEW         shift, and go to state 41
-    ISVOID      shift, and go to state 42
-    STR_CONST   shift, and go to state 43
-    INT_CONST   shift, and go to state 44
-    BOOL_CONST  shift, and go to state 45
-    OBJECTID    shift, and go to state 46
-    NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
-
-    expression  go to state 93
+    TYPEID  shift, and go to state 93
 
 
 State 73
 
-   45 expression: expression '=' . expression
+   29 expression: expression '.' . OBJECTID '(' param_list ')'
 
-    IF          shift, and go to state 38
-    WHILE       shift, and go to state 39
-    CASE        shift, and go to state 40
-    NEW         shift, and go to state 41
-    ISVOID      shift, and go to state 42
-    STR_CONST   shift, and go to state 43
-    INT_CONST   shift, and go to state 44
-    BOOL_CONST  shift, and go to state 45
-    OBJECTID    shift, and go to state 46
-    NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
-
-    expression  go to state 94
+    OBJECTID  shift, and go to state 94
 
 
 State 74
@@ -1225,9 +1171,9 @@ State 74
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 95
 
@@ -1246,9 +1192,9 @@ State 75
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 96
 
@@ -1267,9 +1213,9 @@ State 76
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 97
 
@@ -1298,24 +1244,15 @@ State 78
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
-    LE        [reduce using rule 28 (expression)]
-    '.'       [reduce using rule 28 (expression)]
-    '@'       [reduce using rule 28 (expression)]
-    '+'       [reduce using rule 28 (expression)]
-    '-'       [reduce using rule 28 (expression)]
-    '*'       [reduce using rule 28 (expression)]
-    '/'       [reduce using rule 28 (expression)]
-    '<'       [reduce using rule 28 (expression)]
-    '='       [reduce using rule 28 (expression)]
     $default  reduce using rule 28 (expression)
 
 
@@ -1350,14 +1287,14 @@ State 81
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
     $default  reduce using rule 20 (non_empty_param_list)
 
@@ -1383,15 +1320,15 @@ State 83
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
-    ';'  shift, and go to state 103
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
+    ';'  shift, and go to state 103
 
 
 State 84
@@ -1421,40 +1358,72 @@ State 86
    44           | expression LE expression .
    45           | expression . '=' expression
 
-    LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
-    LE        [reduce using rule 44 (expression)]
-    '.'       [reduce using rule 44 (expression)]
-    '@'       [reduce using rule 44 (expression)]
-    '+'       [reduce using rule 44 (expression)]
-    '-'       [reduce using rule 44 (expression)]
-    '*'       [reduce using rule 44 (expression)]
-    '/'       [reduce using rule 44 (expression)]
-    '<'       [reduce using rule 44 (expression)]
-    '='       [reduce using rule 44 (expression)]
+    LE   error (nonassociative)
+    '<'  error (nonassociative)
+    '='  error (nonassociative)
+
     $default  reduce using rule 44 (expression)
 
 
 State 87
 
-   29 expression: expression '.' OBJECTID . '(' param_list ')'
+   29 expression: expression . '.' OBJECTID '(' param_list ')'
+   30           | expression . '@' TYPEID '.' OBJECTID '(' param_list ')'
+   39           | expression . '+' expression
+   40           | expression . '-' expression
+   41           | expression . '*' expression
+   42           | expression . '/' expression
+   43           | expression . '<' expression
+   43           | expression '<' expression .
+   44           | expression . LE expression
+   45           | expression . '=' expression
 
-    '('  shift, and go to state 104
+    '+'  shift, and go to state 68
+    '-'  shift, and go to state 69
+    '*'  shift, and go to state 70
+    '/'  shift, and go to state 71
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
+
+    LE   error (nonassociative)
+    '<'  error (nonassociative)
+    '='  error (nonassociative)
+
+    $default  reduce using rule 43 (expression)
 
 
 State 88
 
-   30 expression: expression '@' TYPEID . '.' OBJECTID '(' param_list ')'
+   29 expression: expression . '.' OBJECTID '(' param_list ')'
+   30           | expression . '@' TYPEID '.' OBJECTID '(' param_list ')'
+   39           | expression . '+' expression
+   40           | expression . '-' expression
+   41           | expression . '*' expression
+   42           | expression . '/' expression
+   43           | expression . '<' expression
+   44           | expression . LE expression
+   45           | expression . '=' expression
+   45           | expression '=' expression .
 
-    '.'  shift, and go to state 105
+    '+'  shift, and go to state 68
+    '-'  shift, and go to state 69
+    '*'  shift, and go to state 70
+    '/'  shift, and go to state 71
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
+
+    LE   error (nonassociative)
+    '<'  error (nonassociative)
+    '='  error (nonassociative)
+
+    $default  reduce using rule 45 (expression)
 
 
 State 89
@@ -1470,25 +1439,11 @@ State 89
    44           | expression . LE expression
    45           | expression . '=' expression
 
-    LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
-    LE        [reduce using rule 39 (expression)]
-    '.'       [reduce using rule 39 (expression)]
-    '@'       [reduce using rule 39 (expression)]
-    '+'       [reduce using rule 39 (expression)]
-    '-'       [reduce using rule 39 (expression)]
-    '*'       [reduce using rule 39 (expression)]
-    '/'       [reduce using rule 39 (expression)]
-    '<'       [reduce using rule 39 (expression)]
-    '='       [reduce using rule 39 (expression)]
     $default  reduce using rule 39 (expression)
 
 
@@ -1505,25 +1460,11 @@ State 90
    44           | expression . LE expression
    45           | expression . '=' expression
 
-    LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
-    LE        [reduce using rule 40 (expression)]
-    '.'       [reduce using rule 40 (expression)]
-    '@'       [reduce using rule 40 (expression)]
-    '+'       [reduce using rule 40 (expression)]
-    '-'       [reduce using rule 40 (expression)]
-    '*'       [reduce using rule 40 (expression)]
-    '/'       [reduce using rule 40 (expression)]
-    '<'       [reduce using rule 40 (expression)]
-    '='       [reduce using rule 40 (expression)]
     $default  reduce using rule 40 (expression)
 
 
@@ -1540,25 +1481,9 @@ State 91
    44           | expression . LE expression
    45           | expression . '=' expression
 
-    LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
-    '*'  shift, and go to state 70
-    '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
-    LE        [reduce using rule 41 (expression)]
-    '.'       [reduce using rule 41 (expression)]
-    '@'       [reduce using rule 41 (expression)]
-    '+'       [reduce using rule 41 (expression)]
-    '-'       [reduce using rule 41 (expression)]
-    '*'       [reduce using rule 41 (expression)]
-    '/'       [reduce using rule 41 (expression)]
-    '<'       [reduce using rule 41 (expression)]
-    '='       [reduce using rule 41 (expression)]
     $default  reduce using rule 41 (expression)
 
 
@@ -1575,96 +1500,24 @@ State 92
    44           | expression . LE expression
    45           | expression . '=' expression
 
-    LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
-    '*'  shift, and go to state 70
-    '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
-    LE        [reduce using rule 42 (expression)]
-    '.'       [reduce using rule 42 (expression)]
-    '@'       [reduce using rule 42 (expression)]
-    '+'       [reduce using rule 42 (expression)]
-    '-'       [reduce using rule 42 (expression)]
-    '*'       [reduce using rule 42 (expression)]
-    '/'       [reduce using rule 42 (expression)]
-    '<'       [reduce using rule 42 (expression)]
-    '='       [reduce using rule 42 (expression)]
     $default  reduce using rule 42 (expression)
 
 
 State 93
 
-   29 expression: expression . '.' OBJECTID '(' param_list ')'
-   30           | expression . '@' TYPEID '.' OBJECTID '(' param_list ')'
-   39           | expression . '+' expression
-   40           | expression . '-' expression
-   41           | expression . '*' expression
-   42           | expression . '/' expression
-   43           | expression . '<' expression
-   43           | expression '<' expression .
-   44           | expression . LE expression
-   45           | expression . '=' expression
+   30 expression: expression '@' TYPEID . '.' OBJECTID '(' param_list ')'
 
-    LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
-    '*'  shift, and go to state 70
-    '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
-
-    LE        [reduce using rule 43 (expression)]
-    '.'       [reduce using rule 43 (expression)]
-    '@'       [reduce using rule 43 (expression)]
-    '+'       [reduce using rule 43 (expression)]
-    '-'       [reduce using rule 43 (expression)]
-    '*'       [reduce using rule 43 (expression)]
-    '/'       [reduce using rule 43 (expression)]
-    '<'       [reduce using rule 43 (expression)]
-    '='       [reduce using rule 43 (expression)]
-    $default  reduce using rule 43 (expression)
+    '.'  shift, and go to state 104
 
 
 State 94
 
-   29 expression: expression . '.' OBJECTID '(' param_list ')'
-   30           | expression . '@' TYPEID '.' OBJECTID '(' param_list ')'
-   39           | expression . '+' expression
-   40           | expression . '-' expression
-   41           | expression . '*' expression
-   42           | expression . '/' expression
-   43           | expression . '<' expression
-   44           | expression . LE expression
-   45           | expression . '=' expression
-   45           | expression '=' expression .
+   29 expression: expression '.' OBJECTID . '(' param_list ')'
 
-    LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
-    '+'  shift, and go to state 68
-    '-'  shift, and go to state 69
-    '*'  shift, and go to state 70
-    '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
-
-    LE        [reduce using rule 45 (expression)]
-    '.'       [reduce using rule 45 (expression)]
-    '@'       [reduce using rule 45 (expression)]
-    '+'       [reduce using rule 45 (expression)]
-    '-'       [reduce using rule 45 (expression)]
-    '*'       [reduce using rule 45 (expression)]
-    '/'       [reduce using rule 45 (expression)]
-    '<'       [reduce using rule 45 (expression)]
-    '='       [reduce using rule 45 (expression)]
-    $default  reduce using rule 45 (expression)
+    '('  shift, and go to state 105
 
 
 State 95
@@ -1681,15 +1534,15 @@ State 95
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
-    '}'  shift, and go to state 106
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
+    '}'  shift, and go to state 106
 
 
 State 96
@@ -1707,14 +1560,14 @@ State 96
 
     ELSE  shift, and go to state 107
     LE    shift, and go to state 65
-    '.'   shift, and go to state 66
-    '@'   shift, and go to state 67
+    '<'   shift, and go to state 66
+    '='   shift, and go to state 67
     '+'   shift, and go to state 68
     '-'   shift, and go to state 69
     '*'   shift, and go to state 70
     '/'   shift, and go to state 71
-    '<'   shift, and go to state 72
-    '='   shift, and go to state 73
+    '@'   shift, and go to state 72
+    '.'   shift, and go to state 73
 
 
 State 97
@@ -1732,14 +1585,14 @@ State 97
 
     POOL  shift, and go to state 108
     LE    shift, and go to state 65
-    '.'   shift, and go to state 66
-    '@'   shift, and go to state 67
+    '<'   shift, and go to state 66
+    '='   shift, and go to state 67
     '+'   shift, and go to state 68
     '-'   shift, and go to state 69
     '*'   shift, and go to state 70
     '/'   shift, and go to state 71
-    '<'   shift, and go to state 72
-    '='   shift, and go to state 73
+    '@'   shift, and go to state 72
+    '.'   shift, and go to state 73
 
 
 State 98
@@ -1789,9 +1642,9 @@ State 102
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 112
 
@@ -1805,6 +1658,13 @@ State 103
 
 State 104
 
+   30 expression: expression '@' TYPEID '.' . OBJECTID '(' param_list ')'
+
+    OBJECTID  shift, and go to state 113
+
+
+State 105
+
    29 expression: expression '.' OBJECTID '(' . param_list ')'
 
     IF          shift, and go to state 38
@@ -1817,22 +1677,15 @@ State 104
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     $default  reduce using rule 18 (param_list)
 
-    param_list            go to state 113
+    param_list            go to state 114
     non_empty_param_list  go to state 80
     expression            go to state 81
-
-
-State 105
-
-   30 expression: expression '@' TYPEID '.' . OBJECTID '(' param_list ')'
-
-    OBJECTID  shift, and go to state 114
 
 
 State 106
@@ -1856,9 +1709,9 @@ State 107
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 115
 
@@ -1906,30 +1759,30 @@ State 112
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
     $default  reduce using rule 21 (non_empty_param_list)
 
 
 State 113
 
-   29 expression: expression '.' OBJECTID '(' param_list . ')'
+   30 expression: expression '@' TYPEID '.' OBJECTID . '(' param_list ')'
 
-    ')'  shift, and go to state 117
+    '('  shift, and go to state 117
 
 
 State 114
 
-   30 expression: expression '@' TYPEID '.' OBJECTID . '(' param_list ')'
+   29 expression: expression '.' OBJECTID '(' param_list . ')'
 
-    '('  shift, and go to state 118
+    ')'  shift, and go to state 118
 
 
 State 115
@@ -1947,14 +1800,14 @@ State 115
 
     FI   shift, and go to state 119
     LE   shift, and go to state 65
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
 
 
 State 116
@@ -1968,13 +1821,6 @@ State 116
 
 State 117
 
-   29 expression: expression '.' OBJECTID '(' param_list ')' .
-
-    $default  reduce using rule 29 (expression)
-
-
-State 118
-
    30 expression: expression '@' TYPEID '.' OBJECTID '(' . param_list ')'
 
     IF          shift, and go to state 38
@@ -1987,15 +1833,22 @@ State 118
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     $default  reduce using rule 18 (param_list)
 
     param_list            go to state 122
     non_empty_param_list  go to state 80
     expression            go to state 81
+
+
+State 118
+
+   29 expression: expression '.' OBJECTID '(' param_list ')' .
+
+    $default  reduce using rule 29 (expression)
 
 
 State 119
@@ -2019,9 +1872,9 @@ State 120
     BOOL_CONST  shift, and go to state 45
     OBJECTID    shift, and go to state 46
     NOT         shift, and go to state 47
-    '{'         shift, and go to state 48
-    '('         shift, and go to state 49
-    '~'         shift, and go to state 50
+    '~'         shift, and go to state 48
+    '{'         shift, and go to state 49
+    '('         shift, and go to state 50
 
     expression  go to state 123
 
@@ -2054,15 +1907,15 @@ State 123
    45           | expression . '=' expression
 
     LE   shift, and go to state 65
-    ';'  shift, and go to state 125
-    '.'  shift, and go to state 66
-    '@'  shift, and go to state 67
+    '<'  shift, and go to state 66
+    '='  shift, and go to state 67
     '+'  shift, and go to state 68
     '-'  shift, and go to state 69
     '*'  shift, and go to state 70
     '/'  shift, and go to state 71
-    '<'  shift, and go to state 72
-    '='  shift, and go to state 73
+    '@'  shift, and go to state 72
+    '.'  shift, and go to state 73
+    ';'  shift, and go to state 125
 
 
 State 124
