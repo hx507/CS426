@@ -108,8 +108,11 @@ extern int VERBOSE_ERRORS;
 %type <expressions> non_empty_stmt_list
 %type <case_> case_branch
 %type <cases> non_empty_case_list
+%type <expression> let_entries
 
 /* Precedence declarations go here, lowest to highest */
+/* Let have lowest precedence to allow body to extend as long as possible */
+%left LET_PREC
 /* All binary operations are left-associative, with the exception of assignment, which is right-associative,
 and the three comparison operations, which do not associate. */
 %right ASSIGN
@@ -207,6 +210,16 @@ non_empty_case_list
     | non_empty_case_list case_branch
         { $$ = append_Cases($1, single_Cases($2)); }
 
+let_entries 
+    : OBJECTID ':' TYPEID IN expression %prec LET_PREC
+        { $$ = let($1, $3, no_expr(), $5); }
+    | OBJECTID ':' TYPEID ASSIGN expression IN expression %prec LET_PREC
+        { $$ = let($1, $3, $5, $7); }
+    | OBJECTID ':' TYPEID ',' let_entries
+        { $$ = let($1, $3, no_expr(), $5); }
+    | OBJECTID ':' TYPEID ASSIGN expression ',' let_entries
+        { $$ = let($1, $3, $5, $7); }
+
 expression
     : OBJECTID ASSIGN expression
         { $$ = assign($1, $3); }
@@ -219,7 +232,6 @@ expression
         { $$ = dispatch(object(idtable.add_string("self")), $1, $3);  }
 
     /* control flows */
-    /* TODO: let, error handling, precedence */
     | IF expression THEN expression ELSE expression FI
         { $$ = cond($2, $4, $6); }
     | WHILE expression LOOP expression POOL
@@ -230,12 +242,15 @@ expression
         { $$ = block($2); }
 
     /* keyword operators */
+    /* TODO: let, error handling */
     | NEW TYPEID
         { $$ = new_($2); }
     | ISVOID expression
         { $$ = isvoid($2); }
     | NOT expression
         { $$ = neg($2); }
+    | LET let_entries
+        { $$ = $2; }
 
     /* binary op */
     | expression '+' expression
