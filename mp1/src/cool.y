@@ -237,7 +237,6 @@ non_empty_case_list
 
 in_expr : IN expression %prec LET_PREC
             { $$ = $2; }
-        | IN error { yyclearin; $$={}; }
     ;
 let_entries 
     : OBJECTID ':' TYPEID in_expr
@@ -250,9 +249,9 @@ let_entries
         { $$ = let($1, $3, $5, $7); }
     /* error handling, need to recover next let entry */
     | error ',' let_entries
-        { yyclearin; $$=$3; }
+        { ; $$=$3; }
     | error in_expr
-        { yyclearin; $$=$2; }
+        { ; $$=$2; }
     ;
 
 expression
