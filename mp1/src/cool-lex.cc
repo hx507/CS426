@@ -668,8 +668,8 @@ static yyconst flex_int16_t yy_rule_linenum[48] =
        94,   98,  103,  104,  105,  106,  112,  113,  114,  115,
       116,  117,  118,  119,  120,  121,  122,  123,  124,  125,
       126,  127,  128,  130,  131,  139,  140,  144,  146,  148,
-      152,  153,  154,  155,  156,  158,  160,  161,  166,  170,
-      172,  173,  175,  177,  180,  184,  188
+      156,  157,  158,  159,  160,  162,  164,  165,  170,  174,
+      176,  177,  179,  181,  184,  188,  192
     } ;
 
 /* The intent behind this definition is that it'll catch
@@ -724,9 +724,9 @@ extern YYSTYPE cool_yylval;
 #define RETURN_STRING_AS(field, val, type) RETURN_AS(field, stringtable.add_string(val), type)
 #define RETURN_AS_ERR(msg) RETURN_AS(error_msg, msg, ERROR);
 
-#define TRY_ADD_TO_BUF(c) { if(str_len>MAX_STR_CONST) \
-                                RETURN_AS_ERR("String literal too long");\
-                            string_buf[str_len++] = c;}
+#define TRY_ADD_TO_BUF(c) { if(str_len<MAX_STR_CONST) \
+                                string_buf[str_len] = c;\
+                            str_len++;}
 
 /*
  *  Add Your own definitions here
@@ -1296,118 +1296,122 @@ case 30:
 YY_RULE_SETUP
 #line 148 "cool.flex"
 { BEGIN(0);
-                        string_buf[str_len]=0; 
-                        RETURN_STRING_AS(symbol, string_buf, STR_CONST); }
+                        if(str_len<MAX_STR_CONST){
+                            string_buf[str_len]=0; 
+                            RETURN_STRING_AS(symbol, string_buf, STR_CONST);
+                        }
+                        RETURN_AS_ERR("String constant too long");
+                        }
 	YY_BREAK
 /* Special escaped characters in string */
 case 31:
 YY_RULE_SETUP
-#line 152 "cool.flex"
+#line 156 "cool.flex"
 { TRY_ADD_TO_BUF('\b'); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 153 "cool.flex"
+#line 157 "cool.flex"
 { TRY_ADD_TO_BUF('\t'); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 154 "cool.flex"
+#line 158 "cool.flex"
 { TRY_ADD_TO_BUF('\n'); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 155 "cool.flex"
+#line 159 "cool.flex"
 { TRY_ADD_TO_BUF('\f'); }
 	YY_BREAK
 case 35:
 /* rule 35 can match eol */
 YY_RULE_SETUP
-#line 156 "cool.flex"
+#line 160 "cool.flex"
 { TRY_ADD_TO_BUF('\n'); curr_lineno++; }
 	YY_BREAK
 /* For \0, consume the remaining string and error, note \\0 should be treated as 0 */
 case 36:
 /* rule 36 can match eol */
 YY_RULE_SETUP
-#line 158 "cool.flex"
+#line 162 "cool.flex"
 { BEGIN(0); RETURN_AS_ERR("Found \\0 in string"); }
 	YY_BREAK
 /* other escapes are treated as \x -> x */
 case 37:
 YY_RULE_SETUP
-#line 160 "cool.flex"
+#line 164 "cool.flex"
 { TRY_ADD_TO_BUF(yytext[1]); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 161 "cool.flex"
+#line 165 "cool.flex"
 { TRY_ADD_TO_BUF(*yytext); }
 	YY_BREAK
 /* Comments */
 /* Haskell style comments: -- this is a comment */
 case 39:
 YY_RULE_SETUP
-#line 166 "cool.flex"
+#line 170 "cool.flex"
 {}
 	YY_BREAK
 /* Cool style comments: (* this is a comment *) 
   *     - maintain comment_depth to support nested comments, exit when depth=0*/
 case 40:
 YY_RULE_SETUP
-#line 170 "cool.flex"
+#line 174 "cool.flex"
 { BEGIN(COMMENT_START); comment_depth++;}
 	YY_BREAK
 case 41:
 /* rule 41 can match eol */
 YY_RULE_SETUP
-#line 172 "cool.flex"
+#line 176 "cool.flex"
 { curr_lineno++; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 173 "cool.flex"
+#line 177 "cool.flex"
 { comment_depth++;}
 	YY_BREAK
 case YY_STATE_EOF(COMMENT_START):
-#line 174 "cool.flex"
+#line 178 "cool.flex"
 { comment_depth=0; BEGIN(0); RETURN_AS_ERR("EOF in comment"); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 175 "cool.flex"
+#line 179 "cool.flex"
 { /* ignore other stuff in comment */ }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 177 "cool.flex"
+#line 181 "cool.flex"
 { comment_depth--; if(comment_depth==0) BEGIN(0);}
 	YY_BREAK
 /* Detect extra closing comment */
 case 45:
 YY_RULE_SETUP
-#line 180 "cool.flex"
+#line 184 "cool.flex"
 {RETURN_AS_ERR("Unmatched closing comment '*)'");}
 	YY_BREAK
 /* White Space, ignore */
 case 46:
 /* rule 46 can match eol */
 YY_RULE_SETUP
-#line 184 "cool.flex"
+#line 188 "cool.flex"
 {}
 	YY_BREAK
 /* Invalid character */
 case 47:
 YY_RULE_SETUP
-#line 188 "cool.flex"
+#line 192 "cool.flex"
 { RETURN_AS_ERR(yytext);}
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 190 "cool.flex"
+#line 194 "cool.flex"
 ECHO;
 	YY_BREAK
-#line 1411 "cool-lex.cc"
+#line 1415 "cool-lex.cc"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
@@ -2554,7 +2558,7 @@ void yyfree (void * ptr )
 
 /* %ok-for-header */
 
-#line 190 "cool.flex"
+#line 194 "cool.flex"
 
 
 

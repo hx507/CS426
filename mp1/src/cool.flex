@@ -42,9 +42,9 @@ extern YYSTYPE cool_yylval;
 #define RETURN_STRING_AS(field, val, type) RETURN_AS(field, stringtable.add_string(val), type)
 #define RETURN_AS_ERR(msg) RETURN_AS(error_msg, msg, ERROR);
 
-#define TRY_ADD_TO_BUF(c) { if(str_len>MAX_STR_CONST) \
-                                RETURN_AS_ERR("String literal too long");\
-                            string_buf[str_len++] = c;}
+#define TRY_ADD_TO_BUF(c) { if(str_len<MAX_STR_CONST) \
+                                string_buf[str_len] = c;\
+                            str_len++;}
 
 /*
  *  Add Your own definitions here
@@ -144,10 +144,14 @@ f(?i:alse)   { RETURN_AS(boolean, false, BOOL_CONST); }
 \"                    { str_len=0; BEGIN(STRING_START); }
 
 <STRING_START>\n      { BEGIN(0); curr_lineno++; RETURN_AS_ERR("Unterminated string constant"); }
-<STRING_START><<EOF>> { BEGIN(0); RETURN_AS_ERR("Unterminated string constant"); }
+<STRING_START><<EOF>> { BEGIN(0); RETURN_AS_ERR("EOF in string constant"); }
 <STRING_START>\"      { BEGIN(0);
-                        string_buf[str_len]=0; 
-                        RETURN_STRING_AS(symbol, string_buf, STR_CONST); }
+                        if(str_len<MAX_STR_CONST){
+                            string_buf[str_len]=0; 
+                            RETURN_STRING_AS(symbol, string_buf, STR_CONST);
+                        }
+                        RETURN_AS_ERR("String constant too long");
+                        }
  /* Special escaped characters in string */
 <STRING_START>\\b     { TRY_ADD_TO_BUF('\b'); }
 <STRING_START>\\t     { TRY_ADD_TO_BUF('\t'); }
@@ -177,7 +181,7 @@ f(?i:alse)   { RETURN_AS(boolean, false, BOOL_CONST); }
 <COMMENT_START>"\*\)"   { comment_depth--; if(comment_depth==0) BEGIN(0);}
 
  /* Detect extra closing comment */
-"\*\)" {RETURN_AS_ERR("Unmatched closing comment '*)'");}
+"\*\)" {RETURN_AS_ERR("Unmatched *)");}
 
 
  /* White Space, ignore */
