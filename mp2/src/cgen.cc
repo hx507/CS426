@@ -716,6 +716,7 @@ operand get_class_tag(operand src, CgenNode *src_cls, CgenEnvironment *env) {
 }
 #endif
 
+// My helpers
 #define str_eq(a, b) (strcmp(a, b) == 0)
 op_type as_operand(Symbol s) {
   char *symbol_str = s->get_string();
@@ -725,13 +726,17 @@ op_type as_operand(Symbol s) {
   // TODO Support self type and stuff here
   return op_type(symbol_str);
 }
+#define vp_init auto vp = ValuePrinter(*(env->cur_stream));
+#define nvp() (ValuePrinter(*(env->cur_stream)))
+#define ret_code_bin_op(op) return nvp().op(e1->code(env), e2->code(env));
+
 //
 // Create a method body
 //
 void method_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "method" << endl;
   // ADD CODE HERE
-  ValuePrinter vp(*(env->cur_stream));
+  vp_init;
   string method_name =
       env->get_class()->get_type_name() + "." + name->get_string();
   // TODO Support formals as argument
@@ -788,28 +793,35 @@ operand plus_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "plus" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  ret_code_bin_op(add);
 }
 
 operand sub_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "sub" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  ret_code_bin_op(sub);
 }
 
 operand mul_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "mul" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  ret_code_bin_op(mul);
 }
 
 operand divide_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "div" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  // TODO: insert code check for zero
+  vp_init;
+  auto is_zero = vp.icmp(EQ, e2->code(env), int_value(0));
+  auto ok = env->new_ok_label();
+  vp.branch_cond(is_zero, "abort", ok);
+
+  vp.begin_block(ok);
+  ret_code_bin_op(div);
 }
 
 operand neg_class::code(CgenEnvironment *env) {
