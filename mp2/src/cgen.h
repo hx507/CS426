@@ -88,12 +88,12 @@ private:
 class CgenNode : public class__class {
 public:
   enum Basicness { Basic, NotBasic };
-
 #ifndef MP3
   void codeGenMainmain();
 #endif
 
 private:
+  ostream *ct_stream;
   CgenNode *parentnd;       // Parent of class
   List<CgenNode> *children; // Children of class
   Basicness basic_status;   // `Basic' or 'NotBasic'
@@ -129,7 +129,7 @@ public:
   virtual ~CgenNode() {}
 
   // Class setup. You need to write the body of this function.
-  void setup(int tag, int depth);
+  void setup(int tag, int depth, ostream* ct_stream);
 
   // Class codegen. You need to write the body of this function.
   void code_class();

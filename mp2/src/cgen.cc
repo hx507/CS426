@@ -7,6 +7,7 @@
 
 #define EXTERN
 #include "cgen.h"
+
 #include <sstream>
 #include <string>
 
@@ -36,10 +37,10 @@ EXTERN Symbol
     val,
 
     // special symbols
-    No_class,  // symbol that can't be the name of any user-defined class
-    No_type,   // If e : No_type, then no code is generated for e.
-    SELF_TYPE, // Special code is generated for new SELF_TYPE.
-    self,      // self generates code differently than other references
+    No_class,   // symbol that can't be the name of any user-defined class
+    No_type,    // If e : No_type, then no code is generated for e.
+    SELF_TYPE,  // Special code is generated for new SELF_TYPE.
+    self,       // self generates code differently than other references
 
     // extras
     arg, arg2, prim_string, prim_int, prim_bool;
@@ -154,7 +155,6 @@ void CgenClassTable::setup_external_functions() {
   // Setup external functions for built in object class functions
 #endif
 }
-
 // Creates AST nodes for the basic classes and installs them in the class list
 void CgenClassTable::install_basic_classes() {
   // The tree package uses these globals to annotate the classes built below.
@@ -302,8 +302,7 @@ void CgenClassTable::install_classes(Classes cs) {
 void CgenClassTable::install_class(CgenNode *nd) {
   Symbol name = nd->get_name();
 
-  if (probe(name))
-    return;
+  if (probe(name)) return;
 
   // The class name is legal, so add it to the list of classes
   // and the symbol table.
@@ -317,8 +316,7 @@ void CgenClassTable::install_class(CgenNode *nd) {
 void CgenClassTable::install_special_class(CgenNode *nd) {
   Symbol name = nd->get_name();
 
-  if (probe(name))
-    return;
+  if (probe(name)) return;
 
   // The class name is legal, so add it to the list of special classes
   // and the symbol table.
@@ -330,8 +328,7 @@ void CgenClassTable::install_special_class(CgenNode *nd) {
 // CgenClassTable::build_inheritance_tree
 //
 void CgenClassTable::build_inheritance_tree() {
-  for (auto node : nds)
-    set_relations(node);
+  for (auto node : nds) set_relations(node);
 }
 
 //
@@ -359,15 +356,14 @@ CgenNode *CgenClassTable::root() { return probe(Object); }
 #ifndef MP3
 
 CgenNode *CgenClassTable::getMainmain(CgenNode *c) {
-  if (c && !c->basic())
-    return c; // Found it!
+  if (c && !c->basic()) return c;  // Found it!
 
   for (auto child : c->get_children()) {
     if (CgenNode *foundMain = this->getMainmain(child))
-      return foundMain; // Propagate it up the recursive calls
+      return foundMain;  // Propagate it up the recursive calls
   }
 
-  return 0; // Make the recursion continue
+  return 0;  // Make the recursion continue
 }
 
 #endif
@@ -432,8 +428,7 @@ void IntEntry::code_def(ostream &s, CgenClassTable *ct) {
 // CgenClassTable constructor orchestrates all code generation
 //
 CgenClassTable::CgenClassTable(Classes classes, ostream &s) : nds(0) {
-  if (cgen_debug)
-    std::cerr << "Building CgenClassTable" << endl;
+  if (cgen_debug) std::cerr << "Building CgenClassTable" << endl;
   ct_stream = &s;
   // Make sure we have a scope, both for classes and for constants
   enterscope();
@@ -465,9 +460,8 @@ void CgenClassTable::setup_classes(CgenNode *c, int depth) {
   // MAY ADD CODE HERE
   // if you want to give classes more setup information
 
-  c->setup(current_tag++, depth);
-  for (auto child : c->get_children())
-    setup_classes(child, depth + 1);
+  c->setup(current_tag++, depth, ct_stream);
+  for (auto child : c->get_children()) setup_classes(child, depth + 1);
 
   c->set_max_child(current_tag - 1);
 
@@ -500,7 +494,6 @@ void CgenClassTable::code_module() {
 
 #ifdef MP3
 void CgenClassTable::code_classes(CgenNode *c) {
-
   // ADD CODE HERE
 }
 #endif
@@ -538,8 +531,12 @@ void CgenClassTable::code_main(){
 ///////////////////////////////////////////////////////////////////////
 
 CgenNode::CgenNode(Class_ nd, Basicness bstatus, CgenClassTable *ct)
-    : class__class((const class__class &)*nd), parentnd(0), children(0),
-      basic_status(bstatus), class_table(ct), tag(-1) {
+    : class__class((const class__class &)*nd),
+      parentnd(0),
+      children(0),
+      basic_status(bstatus),
+      class_table(ct),
+      tag(-1) {
   // ADD CODE HERE
 }
 
@@ -563,8 +560,9 @@ void CgenNode::set_parentnd(CgenNode *p) {
 //  - create the types for the class and its vtable
 //  - create global definitions used by the class such as the class vtable
 //
-void CgenNode::setup(int tag, int depth) {
+void CgenNode::setup(int tag, int depth, ostream *ct_stream) {
   this->tag = tag;
+  this->ct_stream = ct_stream;
 #ifdef MP3
   layout_features();
 
@@ -580,8 +578,7 @@ void CgenNode::setup(int tag, int depth) {
 //
 void CgenNode::code_class() {
   // No code generation for basic classes. The runtime will handle that.
-  if (basic())
-    return;
+  if (basic()) return;
 
   // ADD CODE HERE
 }
@@ -597,7 +594,7 @@ void CgenNode::layout_features() {
 // code-gen function main() in class Main
 //
 void CgenNode::codeGenMainmain() {
-  ValuePrinter vp;
+  ValuePrinter vp(*ct_stream);
   // In Phase 1, this can only be class Main. Get method_class for main().
   assert(std::string(this->name->get_string()) == std::string("Main"));
   method_class *mainMethod = (method_class *)features->nth(features->first());
@@ -606,6 +603,8 @@ void CgenNode::codeGenMainmain() {
   // Generally what you need to do are:
   // -- setup or create the environment, env, for translating this method
   // -- invoke mainMethod->code(env) to translate the method
+  CgenEnvironment env(*ct_stream, this);
+  mainMethod->code(&env);
 }
 
 #endif
@@ -698,14 +697,32 @@ operand get_class_tag(operand src, CgenNode *src_cls, CgenEnvironment *env) {
 }
 #endif
 
+#define str_eq(a, b) (strcmp(a, b) == 0)
+op_type as_operand(Symbol s) {
+  char *symbol_str = s->get_string();
+  if (cgen_debug) std::cerr << "Operand conversion: " << symbol_str << endl;
+  if (str_eq(symbol_str, "Int")) return op_type(INT32);
+  if (str_eq(symbol_str, "Bool")) return op_type(INT1);
+  // TODO Support self type and stuff here
+  return op_type(symbol_str);
+}
 //
 // Create a method body
 //
 void method_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "method" << endl;
-
+  if (cgen_debug) std::cerr << "method" << endl;
   // ADD CODE HERE
+  ValuePrinter vp(*(env->cur_stream));
+  string method_name =
+      env->get_class()->get_type_name() + "." + name->get_string();
+  // TODO Support formals as argument
+  vp.define(as_operand(get_return_type()), method_name, {});
+
+  vp.ret(expr->code(env));
+
+  vp.begin_block("abort");
+  vp.call({}, VOID, "abort", true, {});
+  vp.end_define();
 }
 
 //
@@ -713,144 +730,126 @@ void method_class::code(CgenEnvironment *env) {
 //
 
 operand assign_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "assign" << endl;
+  if (cgen_debug) std::cerr << "assign" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand cond_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "cond" << endl;
+  if (cgen_debug) std::cerr << "cond" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand loop_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "loop" << endl;
+  if (cgen_debug) std::cerr << "loop" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand block_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "block" << endl;
+  if (cgen_debug) std::cerr << "block" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand let_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "let" << endl;
+  if (cgen_debug) std::cerr << "let" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand plus_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "plus" << endl;
+  if (cgen_debug) std::cerr << "plus" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand sub_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "sub" << endl;
+  if (cgen_debug) std::cerr << "sub" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand mul_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "mul" << endl;
+  if (cgen_debug) std::cerr << "mul" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand divide_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "div" << endl;
+  if (cgen_debug) std::cerr << "div" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand neg_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "neg" << endl;
+  if (cgen_debug) std::cerr << "neg" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand lt_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "lt" << endl;
+  if (cgen_debug) std::cerr << "lt" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand eq_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "eq" << endl;
+  if (cgen_debug) std::cerr << "eq" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand leq_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "leq" << endl;
+  if (cgen_debug) std::cerr << "leq" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand comp_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "complement" << endl;
+  if (cgen_debug) std::cerr << "complement" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand int_const_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "Integer Constant" << endl;
+  if (cgen_debug) std::cerr << "Integer Constant" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand bool_const_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "Boolean Constant" << endl;
+  if (cgen_debug) std::cerr << "Boolean Constant" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand object_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "Object" << endl;
+  if (cgen_debug) std::cerr << "Object" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
 }
 
 operand no_expr_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "No_expr" << endl;
+  if (cgen_debug) std::cerr << "No_expr" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   return operand();
@@ -863,8 +862,7 @@ operand no_expr_class::code(CgenEnvironment *env) {
 //*****************************************************************
 
 operand static_dispatch_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "static dispatch" << endl;
+  if (cgen_debug) std::cerr << "static dispatch" << endl;
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
@@ -875,8 +873,7 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
 }
 
 operand string_const_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "string_const" << endl;
+  if (cgen_debug) std::cerr << "string_const" << endl;
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
@@ -887,8 +884,7 @@ operand string_const_class::code(CgenEnvironment *env) {
 }
 
 operand dispatch_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "dispatch" << endl;
+  if (cgen_debug) std::cerr << "dispatch" << endl;
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
@@ -899,8 +895,7 @@ operand dispatch_class::code(CgenEnvironment *env) {
 }
 
 operand typcase_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "typecase::code()" << endl;
+  if (cgen_debug) std::cerr << "typecase::code()" << endl;
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
@@ -911,8 +906,7 @@ operand typcase_class::code(CgenEnvironment *env) {
 }
 
 operand new__class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "newClass" << endl;
+  if (cgen_debug) std::cerr << "newClass" << endl;
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
@@ -923,8 +917,7 @@ operand new__class::code(CgenEnvironment *env) {
 }
 
 operand isvoid_class::code(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "isvoid" << endl;
+  if (cgen_debug) std::cerr << "isvoid" << endl;
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
@@ -978,206 +971,181 @@ void attr_class::code(CgenEnvironment *env) {
 // for an expression
 //*****************************************************************
 void assign_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "assign" << endl;
-  
+  if (cgen_debug) std::cerr << "assign" << endl;
+
   // ADD ANY CODE HERE
 }
 
 void cond_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "cond" << endl;
+  if (cgen_debug) std::cerr << "cond" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void loop_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "loop" << endl;
+  if (cgen_debug) std::cerr << "loop" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void block_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "block" << endl;
+  if (cgen_debug) std::cerr << "block" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void let_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "let" << endl;
+  if (cgen_debug) std::cerr << "let" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void plus_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "plus" << endl;
+  if (cgen_debug) std::cerr << "plus" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void sub_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "sub" << endl;
+  if (cgen_debug) std::cerr << "sub" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void mul_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "mul" << endl;
+  if (cgen_debug) std::cerr << "mul" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void divide_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "div" << endl;
+  if (cgen_debug) std::cerr << "div" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void neg_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "neg" << endl;
+  if (cgen_debug) std::cerr << "neg" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void lt_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "lt" << endl;
+  if (cgen_debug) std::cerr << "lt" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void eq_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "eq" << endl;
+  if (cgen_debug) std::cerr << "eq" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void leq_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "leq" << endl;
+  if (cgen_debug) std::cerr << "leq" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void comp_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "complement" << endl;
+  if (cgen_debug) std::cerr << "complement" << endl;
 
   // ADD ANY CODE HERE
 }
 
 void int_const_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "Integer Constant" << endl;
-  
+  if (cgen_debug) std::cerr << "Integer Constant" << endl;
+
   // ADD ANY CODE HERE
 }
 
 void bool_const_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "Boolean Constant" << endl;
-  
+  if (cgen_debug) std::cerr << "Boolean Constant" << endl;
+
   // ADD ANY CODE HERE
 }
 
 void object_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "Object" << endl;
-  
+  if (cgen_debug) std::cerr << "Object" << endl;
+
   // ADD ANY CODE HERE
 }
 
 void no_expr_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "No_expr" << endl;
-  
+  if (cgen_debug) std::cerr << "No_expr" << endl;
+
   // ADD ANY CODE HERE
 }
 
 void static_dispatch_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "static dispatch" << endl;
+  if (cgen_debug) std::cerr << "static dispatch" << endl;
 
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-  // ADD ANY CODE HERE
+    // ADD ANY CODE HERE
 #endif
 }
 
 void string_const_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "string_const" << endl;
+  if (cgen_debug) std::cerr << "string_const" << endl;
 
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-  // ADD ANY CODE HERE
+    // ADD ANY CODE HERE
 #endif
 }
 
 void dispatch_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "dispatch" << endl;
+  if (cgen_debug) std::cerr << "dispatch" << endl;
 
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-  // ADD ANY CODE HERE
+    // ADD ANY CODE HERE
 #endif
 }
 
 // Handle a Cool case expression (selecting based on the type of an object)
 void typcase_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "typecase::make_alloca()" << endl;
+  if (cgen_debug) std::cerr << "typecase::make_alloca()" << endl;
 
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-  // ADD ANY CODE HERE
+    // ADD ANY CODE HERE
 #endif
 }
 
 void new__class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "newClass" << endl;
+  if (cgen_debug) std::cerr << "newClass" << endl;
 
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-  // ADD ANY CODE HERE
+    // ADD ANY CODE HERE
 #endif
 }
 
 void isvoid_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "isvoid" << endl;
+  if (cgen_debug) std::cerr << "isvoid" << endl;
 
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-  // ADD ANY CODE HERE
+    // ADD ANY CODE HERE
 #endif
 }
 
 void branch_class::make_alloca(CgenEnvironment *env) {
-  if (cgen_debug)
-    std::cerr << "branch_class" << endl;
+  if (cgen_debug) std::cerr << "branch_class" << endl;
 
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-  // ADD ANY CODE HERE
+    // ADD ANY CODE HERE
 #endif
 }
 
