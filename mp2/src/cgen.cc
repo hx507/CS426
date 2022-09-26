@@ -502,26 +502,44 @@ void CgenClassTable::code_classes(CgenNode *c) {
 // Create LLVM entry point. This function will initiate our Cool program
 // by generating the code to execute (new Main).main()
 //
-void CgenClassTable::code_main(){
-// Define a function main that has no parameters and returns an i32
+void CgenClassTable::code_main() {
+  // Define a function main that has no parameters and returns an i32
 
-// Define an entry basic block
+  // Define an entry basic block
 
-// Call Main_main(). This returns int* for phase 1, Object for phase 2
+  // Call Main_main(). This returns int* for phase 1, Object for phase 2
+
+  ValuePrinter vp(*ct_stream);
+
+  string msg_name = "main.printout.str";
+  string msg = "Main.main() returned %d\n";
+  op_type msg_ty = op_arr_type(INT8, msg.size() + 1);
+  const_value msg_const(msg_ty, msg, true);
+  vp.init_constant(msg_name, msg_const);
+
+  vp.define({INT32}, "main", {});
+  vp.begin_block("entry");
+  operand ret = vp.call({}, {INT32}, "Main.main", true, {});
 
 #ifndef MP3
-// Get the address of the string "Main_main() returned %d\n" using
-// getelementptr
+  // Get the address of the string "Main_main() returned %d\n" using
+  // getelementptr
 
-// Call printf with the string address of "Main_main() returned %d\n"
-// and the return value of Main_main() as its arguments
+  // Call printf with the string address of "Main_main() returned %d\n"
+  // and the return value of Main_main() as its arguments
 
-// Insert return 0
+  // Insert return 0
+  op_arr_ptr_type msg_ptr_ty(INT8, msg.size() + 1);
+  global_value msg_glob(msg_ptr_ty, msg_name, msg_const);
+  operand msg_arr_ptr = vp.getelementptr(msg_ty, msg_glob, int_value(0),int_value(0), INT8_PTR);
+  vp.call({INT8_PTR, {VAR_ARG}}, {INT32}, "printf", true, {msg_arr_ptr, ret});
+
+  vp.ret(int_value(0));
+  vp.end_define();
 
 #else
 // MP 3
 #endif
-
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -718,10 +736,12 @@ void method_class::code(CgenEnvironment *env) {
   // TODO Support formals as argument
   vp.define(as_operand(get_return_type()), method_name, {});
 
-  vp.ret(expr->code(env));
+  // vp.ret(expr->code(env));
+  vp.ret(int_value(0));
 
   vp.begin_block("abort");
-  vp.call({}, VOID, "abort", true, {});
+  vp.call({}, {VOID}, "abort", true, {});
+  vp.unreachable();
   vp.end_define();
 }
 
