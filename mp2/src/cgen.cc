@@ -728,7 +728,9 @@ op_type as_operand(Symbol s) {
 }
 #define vp_init auto vp = ValuePrinter(*(env->cur_stream));
 #define nvp() (ValuePrinter(*(env->cur_stream)))
-#define ret_code_bin_op(op) return nvp().op(e1->code(env), e2->code(env));
+#define ret_code_bin_op_vals(op, e1, e2) return nvp().op(e1, e2);
+#define ret_code_bin_op(op) \
+  ret_code_bin_op_vals(op, e1->code(env), e2->code(env))
 
 //
 // Create a method body
@@ -779,7 +781,12 @@ operand block_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "block" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+
+  operand last;
+  for (auto exp_cls : body) {
+    last = exp_cls->code(env);
+  }
+  return last;
 }
 
 operand let_class::code(CgenEnvironment *env) {
@@ -828,35 +835,35 @@ operand neg_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "neg" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  ret_code_bin_op_vals(mul, int_value(-1), e1->code(env));
 }
 
 operand lt_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "lt" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  return nvp().icmp(LT, e1->code(env), e2->code(env));
 }
 
 operand eq_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "eq" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  return nvp().icmp(EQ, e1->code(env), e2->code(env));
 }
 
 operand leq_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "leq" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  return nvp().icmp(LE, e1->code(env), e2->code(env));
 }
 
 operand comp_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "complement" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  return nvp().xor_in(e1->code(env), bool_value(true, true));
 }
 
 operand int_const_class::code(CgenEnvironment *env) {
@@ -884,6 +891,7 @@ operand no_expr_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "No_expr" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
+  // TODO use the no_class type
   return operand();
 }
 
