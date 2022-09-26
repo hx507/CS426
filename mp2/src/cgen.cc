@@ -531,7 +531,8 @@ void CgenClassTable::code_main() {
   // Insert return 0
   op_arr_ptr_type msg_ptr_ty(INT8, msg.size() + 1);
   global_value msg_glob(msg_ptr_ty, msg_name, msg_const);
-  operand msg_arr_ptr = vp.getelementptr(msg_ty, msg_glob, int_value(0),int_value(0), INT8_PTR);
+  operand msg_arr_ptr =
+      vp.getelementptr(msg_ty, msg_glob, int_value(0), int_value(0), INT8_PTR);
   vp.call({INT8_PTR, {VAR_ARG}}, {INT32}, "printf", true, {msg_arr_ptr, ret});
 
   vp.ret(int_value(0));
@@ -736,8 +737,7 @@ void method_class::code(CgenEnvironment *env) {
   // TODO Support formals as argument
   vp.define(as_operand(get_return_type()), method_name, {});
 
-  // vp.ret(expr->code(env));
-  vp.ret(int_value(0));
+  vp.ret(expr->code(env));
 
   vp.begin_block("abort");
   vp.call({}, {VOID}, "abort", true, {});
@@ -851,14 +851,14 @@ operand int_const_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "Integer Constant" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  return int_value(atoi(token->get_string()));
 }
 
 operand bool_const_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "Boolean Constant" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  return bool_value(val, false);
 }
 
 operand object_class::code(CgenEnvironment *env) {
