@@ -511,6 +511,7 @@ void CgenClassTable::code_main() {
 
   // Call Main_main(). This returns int* for phase 1, Object for phase 2
 
+  if (cgen_debug) std::cerr << "===Code Main===" << endl;
   ValuePrinter vp(*ct_stream);
 
   string msg_name = "main.printout.str";
@@ -746,7 +747,12 @@ void method_class::code(CgenEnvironment *env) {
   // TODO Support formals as argument
   vp.define(sym_as_type(get_return_type()), method_name, {});
 
-  vp.ret(expr->code(env));
+  operand ret_op = expr->code(env);
+  // derefence basic types on return
+  if (ret_op.get_type().get_id() != sym_as_type(return_type).get_id())
+    ret_op = vp.load(sym_as_type(return_type), ret_op);
+
+  vp.ret(ret_op);
 
   vp.begin_block("abort");
   vp.call({}, {VOID}, "abort", true, {});
@@ -804,7 +810,25 @@ operand loop_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "loop" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  vp_init;
+  string body_label = env->new_label("loop_body", 1),
+         done_label = env->new_label("loop_done", 0);
+
+  std::swap(null_stream, env->cur_stream);  // disable output for now
+  op_type ret_ty = body->code(env).get_type();
+  std::swap(null_stream, env->cur_stream);  // enable again
+
+  operand dst = vp.alloca_mem(ret_ty);
+  vp.branch_uncond(body_label);
+
+  vp.begin_block(body_label);
+  operand body_op = body->code(env);
+  vp.store(body_op, dst);
+  operand pred_op = pred->code(env);
+  vp.branch_cond(pred_op, body_label, done_label);
+
+  vp.begin_block(done_label);
+  return vp.load(ret_ty, dst);
 }
 
 operand block_class::code(CgenEnvironment *env) {
