@@ -24,7 +24,7 @@
 // code generation for an entire Cool program.
 //
 class CgenClassTable : public cool::SymbolTable<Symbol, CgenNode> {
-private:
+ private:
   // Class list
   List<CgenNode> *nds;
   List<CgenNode> *special_nds;
@@ -34,7 +34,7 @@ private:
   CgenNode *getMainmain(CgenNode *c);
 #endif
 
-public:
+ public:
   // The ostream where we are emitting code
   ostream *ct_stream;
   // CgenClassTable constructor begins and ends the code generation process
@@ -45,7 +45,7 @@ public:
   CgenNode *root();
   int get_num_classes() const { return current_tag; }
 
-private:
+ private:
   // COMPLETE FUNCTIONS
 
   // Create declarations for C runtime functions we need to generate code
@@ -86,17 +86,17 @@ private:
 // generating code for each of its methods.
 //
 class CgenNode : public class__class {
-public:
+ public:
   enum Basicness { Basic, NotBasic };
 #ifndef MP3
   void codeGenMainmain();
 #endif
 
-private:
+ private:
   ostream *ct_stream;
-  CgenNode *parentnd;       // Parent of class
-  List<CgenNode> *children; // Children of class
-  Basicness basic_status;   // `Basic' or 'NotBasic'
+  CgenNode *parentnd;        // Parent of class
+  List<CgenNode> *children;  // Children of class
+  Basicness basic_status;    // `Basic' or 'NotBasic'
   CgenClassTable *class_table;
 
   // Class tag.  Should be unique for each class in the tree
@@ -105,7 +105,7 @@ private:
 
   // ADD CODE HERE
 
-public:
+ public:
   // COMPLETE FUNCTIONS
 
   // Relationships with other nodes in the tree
@@ -129,7 +129,7 @@ public:
   virtual ~CgenNode() {}
 
   // Class setup. You need to write the body of this function.
-  void setup(int tag, int depth, ostream* ct_stream);
+  void setup(int tag, int depth, ostream *ct_stream);
 
   // Class codegen. You need to write the body of this function.
   void code_class();
@@ -137,7 +137,7 @@ public:
   // ADD CODE HERE
   string get_type_name() { return string(name->get_string()); }
 
-private:
+ private:
   // Layout the methods and attributes for code generation
   // You need to write the body of this function.
   void layout_features();
@@ -154,7 +154,7 @@ private:
 // examples are the current CgenNode and the current Function.
 //
 class CgenEnvironment {
-private:
+ private:
   // mapping from variable names to memory locations
   cool::SymbolTable<Symbol, operand> var_table;
 
@@ -166,7 +166,7 @@ private:
   // ADD CODE HERE
   CgenNode *cur_class;
 
-public:
+ public:
   std::ostream *cur_stream;
 
   // fresh name generation functions
@@ -194,6 +194,25 @@ public:
   CgenNode *type_to_class(Symbol t);
   // ADD CODE HERE
 };
+
+// ref:
+// https://stackoverflow.com/questions/11826554/standard-no-op-output-stream
+
+class NullStream : public std::ostream {
+ private:
+  class NullBuffer : public std::streambuf {
+   public:
+    virtual int overflow(int c) { return c; }
+  } buffer_;
+
+ public:
+  NullStream() : std::ostream(&buffer_) {}
+} ns;
+
+std::ostream *null_stream = (std::ostream *)&ns;
+
+template <typename T>
+void operator<<(const NullStream &, const T &) {}
 
 // Utitlity function
 // Generate any code necessary to convert from given operand to

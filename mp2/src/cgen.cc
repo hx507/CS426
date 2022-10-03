@@ -6,6 +6,7 @@
 //**************************************************************
 
 #include <alloca.h>
+#include <strings.h>
 #define EXTERN
 #include <sstream>
 #include <string>
@@ -719,7 +720,7 @@ operand get_class_tag(operand src, CgenNode *src_cls, CgenEnvironment *env) {
 
 // My helpers
 #define str_eq(a, b) (strcmp(a, b) == 0)
-op_type as_operand(Symbol s) {
+op_type sym_as_type(Symbol s) {
   char *symbol_str = s->get_string();
   if (cgen_debug) std::cerr << "Operand conversion: " << symbol_str << endl;
   if (str_eq(symbol_str, "Int")) return op_type(INT32);
@@ -743,7 +744,7 @@ void method_class::code(CgenEnvironment *env) {
   string method_name =
       env->get_class()->get_type_name() + "." + name->get_string();
   // TODO Support formals as argument
-  vp.define(as_operand(get_return_type()), method_name, {});
+  vp.define(sym_as_type(get_return_type()), method_name, {});
 
   vp.ret(expr->code(env));
 
@@ -772,7 +773,31 @@ operand cond_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "cond" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  vp_init;
+  string true_label = env->new_label("if_true", 1),
+         false_label = env->new_label("if_false", 0),
+         done_label = env->new_label("end_if", 0);
+
+  operand pr_val = pred->code(env);
+  std::swap(null_stream, env->cur_stream);  // disable output for now
+  op_type ret_ty = then_exp->code(env).get_type();
+  std::swap(null_stream, env->cur_stream);  // enable again
+
+  operand dst = vp.alloca_mem(ret_ty);
+  vp.branch_cond(pr_val, true_label, false_label);
+
+  vp.begin_block(true_label);
+  operand then_op = then_exp->code(env);
+  vp.store(then_op, dst);
+  vp.branch_uncond(done_label);
+
+  vp.begin_block(false_label);
+  operand else_op = else_exp->code(env);
+  vp.store(else_op, dst);
+  vp.branch_uncond(done_label);
+
+  vp.begin_block(done_label);
+  return vp.load(ret_ty, dst);
 }
 
 operand loop_class::code(CgenEnvironment *env) {
@@ -799,8 +824,7 @@ operand let_class::code(CgenEnvironment *env) {
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   vp_init;
-  op_type ty = INT32;
-  if (str_eq(type_decl->get_string(), "Bool")) ty = INT1;
+  op_type ty = sym_as_type(type_decl);
 
   operand val = init->code(env);
   // operand dst_reg(ty, identifier->get_string());
