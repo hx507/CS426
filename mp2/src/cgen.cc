@@ -5,11 +5,12 @@
 // Read the comments carefully and add code to build an LLVM program
 //**************************************************************
 
+#include <alloca.h>
 #define EXTERN
-#include "cgen.h"
-
 #include <sstream>
 #include <string>
+
+#include "cgen.h"
 
 //
 extern int cgen_debug;
@@ -760,7 +761,11 @@ operand assign_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "assign" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  vp_init;
+  operand val = expr->code(env);
+  operand dst = *(env->lookup(name));
+  vp.store(val, dst);
+  return dst;
 }
 
 operand cond_class::code(CgenEnvironment *env) {
@@ -793,7 +798,22 @@ operand let_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "let" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  vp_init;
+  op_type ty = INT32;
+  if (str_eq(type_decl->get_string(), "Bool")) ty = INT1;
+
+  operand val = init->code(env);
+  // operand dst_reg(ty, identifier->get_string());
+  operand dst_stack = vp.alloca_mem(ty);
+  env->add_local(identifier, dst_stack);
+
+  if (val.is_empty()) {  // fill in default value if not specified
+    if (str_eq(type_decl->get_string(), "Int")) val = int_value(0);
+    if (str_eq(type_decl->get_string(), "Bool")) val = bool_value(false, true);
+  }
+  vp.store(val, dst_stack);
+
+  return body->code(env);
 }
 
 operand plus_class::code(CgenEnvironment *env) {
@@ -884,14 +904,15 @@ operand object_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "Object" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return operand();
+  operand *src = env->lookup(name);
+  return nvp().load(src->get_type().get_deref_type(), *src);
 }
 
 operand no_expr_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "No_expr" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  // TODO use the no_class type
+  // TODO use the no_class type ?
   return operand();
 }
 
