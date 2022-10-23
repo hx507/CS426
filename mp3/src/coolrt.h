@@ -21,30 +21,46 @@ typedef struct _IO_vtable IO_vtable;
 /* class type definitions */
 struct Object {
   /* ADD CODE HERE */
+  Object_vtable *vtblptr;
 };
 
 struct Int {
   /* ADD CODE HERE */
+  Int_vtable *vtblptr;
+  int val;
 };
 
 struct Bool {
   /* ADD CODE HERE */
+  Bool_vtable *vtblptr;
+  bool val;
 };
 
 struct String {
   /* ADD CODE HERE */
+  String_vtable *vtblptr;
+  char *val;
 };
 
 struct IO {
   /* ADD CODE HERE */
+  IO_vtable *vtblptr;
 };
 
 /* vtable type definitions */
 struct _Object_vtable {
   /* ADD CODE HERE */
+  int type;
+  char *name;
+  Object *(*Object_new)(void);
+  Object *(*Object_abort)(Object *);
+  String *(*Object_type_name)(Object *);
+  Object *(*Object_copy)(Object *);
 };
 
 struct _Int_vtable {
+  int type;
+  char *name;
   /* ADD CODE HERE */
 };
 

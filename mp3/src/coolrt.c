@@ -1,4 +1,5 @@
 #include "coolrt.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,13 +135,13 @@ int IO_in_int(IO *self) {
   /* Now extract initial int and ignore the rest of the line */
   int x;
   int num_ints = 0;
-  if (len)
-    /* Discards initial spaces*/
+  if (len) /* Discards initial spaces*/
     num_ints = sscanf(in_string, " %d", &x);
 
   /* If no text found, abort. */
   if (num_ints == 0) {
-    fprintf(stderr, "At %s(line %d): Invalid integer on input in IO::in_int()\n",
+    fprintf(stderr,
+            "At %s(line %d): Invalid integer on input in IO::in_int()\n",
             __FILE__, __LINE__);
     Object_abort((Object *)self);
   }
@@ -148,5 +149,22 @@ int IO_in_int(IO *self) {
 }
 
 /* ADD CODE HERE FOR MORE METHODS OF CLASS IO */
+/*declare %IO* @IO_out_string(%IO*, %String*)*/
+/*declare %IO* @IO_out_int(%IO*, i32)*/
+/*declare %String* @IO_in_string(%IO*)*/
+/*declare i32 @IO_in_int(%IO*)*/
 
 /* ADD CODE HERE FOR METHODS OF OTHER BUILTIN CLASSES */
+/*declare %Object* @Object_new()*/
+/*declare %Object* @Object_abort(%Object*)*/
+/*declare %String* @Object_type_name(%Object*)*/
+/*declare %Object* @Object_copy(%Object*)*/
+/*declare %IO* @IO_new()*/
+/*declare %String* @String_new()*/
+/*declare i32 @String_length(%String*)*/
+/*declare %String* @String_concat(%String*, %String*)*/
+/*declare %String* @String_substr(%String*, i32, i32)*/
+/*declare %Int* @Int_new()*/
+/*declare %Int* @Int_init(%Int*, i32)*/
+/*declare %Bool* @Bool_new()*/
+/*declare %Bool* @Bool_init(%Bool*, i1)*/

@@ -155,6 +155,29 @@ void CgenClassTable::setup_external_functions() {
 #ifdef MP3
   // ADD CODE HERE
   // Setup external functions for built in object class functions
+  vp = ValuePrinter(*ct_stream);
+
+  vp.declare({"Object*"}, "Object_new", {});
+  vp.declare({"Object*"}, "Object_abort", {{"Object*"}});
+  vp.declare({"String*"}, "Object_type_name", {{"Object*"}});
+  vp.declare({"Object*"}, "Object_copy", {{"Object*"}});
+
+  vp.declare({"IO*"}, "IO_new", {});
+  vp.declare({"IO*"}, "IO_out_string", {{"IO*"}, {"String*"}});
+  vp.declare({"IO*"}, "IO_out_int", {{"IO*"}, {INT32}});
+  vp.declare({"String*"}, "IO_in_string", {{"IO*"}});
+  vp.declare({INT32}, "IO_in_int", {{"IO*"}});
+
+  vp.declare({"String*"}, "String_new", {{}});
+  vp.declare({INT32}, "String_length", {{"String*"}});
+  vp.declare({"String*"}, "String_concat", {{"String*"}, {"String*"}});
+  vp.declare({"String*"}, "String_substr", {{"String*"}, {INT32}, {INT32}});
+
+  vp.declare({"Int*"}, "Int_new", {{}});
+  vp.declare({"Int*"}, "Int_init", {{"Int*"}, {INT32}});
+
+  vp.declare({"Bool*"}, "Bool_new", {{}});
+  vp.declare({"Bool*"}, "Bool_init", {{"Bool*"}, {INT1}});
 #endif
 }
 // Creates AST nodes for the basic classes and installs them in the class list
@@ -514,36 +537,30 @@ void CgenClassTable::code_main() {
   if (cgen_debug) std::cerr << "===Code Main===" << endl;
   ValuePrinter vp(*ct_stream);
 
+  vp.define({INT32}, "main", {});
+  vp.begin_block("entry");
+
+#ifndef MP3
   string msg_name = "main.printout.str";
   string msg = "Main.main() returned %d\n";
   op_type msg_ty = op_arr_type(INT8, msg.size() + 1);
   const_value msg_const(msg_ty, msg, true);
   vp.init_constant(msg_name, msg_const);
 
-  vp.define({INT32}, "main", {});
-  vp.begin_block("entry");
   operand ret = vp.call({}, {INT32}, "Main.main", true, {});
-
-#ifndef MP3
-  // Get the address of the string "Main_main() returned %d\n" using
-  // getelementptr
-
-  // Call printf with the string address of "Main_main() returned %d\n"
-  // and the return value of Main_main() as its arguments
-
-  // Insert return 0
   op_arr_ptr_type msg_ptr_ty(INT8, msg.size() + 1);
   global_value msg_glob(msg_ptr_ty, msg_name, msg_const);
   operand msg_arr_ptr =
       vp.getelementptr(msg_ty, msg_glob, int_value(0), int_value(0), INT8_PTR);
   vp.call({INT8_PTR, {VAR_ARG}}, {INT32}, "printf", true, {msg_arr_ptr, ret});
+#else
+  // MP3
+  operand main_obj = vp.call({{}}, {"Main*"}, "Main_new", true, {});
+  vp.call({{"Main*"}}, {"Object*"}, "Main.main", true, {main_obj});
 
+#endif
   vp.ret(int_value(0));
   vp.end_define();
-
-#else
-// MP 3
-#endif
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -609,6 +626,9 @@ void CgenNode::code_class() {
 // and assigning each attribute a slot in the class structure.
 void CgenNode::layout_features() {
   // ADD CODE HERE
+  for (auto f : features) {
+    f->layout_feature(this);
+  }
 }
 #else
 
