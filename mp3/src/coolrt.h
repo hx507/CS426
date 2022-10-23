@@ -21,77 +21,123 @@ typedef struct _IO_vtable IO_vtable;
 /* class type definitions */
 struct Object {
   /* ADD CODE HERE */
-  Object_vtable *vtblptr;
+  Object_vtable const *vtblptr;
 };
 
 struct Int {
   /* ADD CODE HERE */
-  Int_vtable *vtblptr;
+  Int_vtable const *vtblptr;
   int val;
 };
 
 struct Bool {
   /* ADD CODE HERE */
-  Bool_vtable *vtblptr;
+  Bool_vtable const *vtblptr;
   bool val;
 };
 
 struct String {
   /* ADD CODE HERE */
-  String_vtable *vtblptr;
+  String_vtable const *vtblptr;
   char *val;
 };
 
 struct IO {
   /* ADD CODE HERE */
-  IO_vtable *vtblptr;
+  IO_vtable const *vtblptr;
 };
 
 /* vtable type definitions */
 struct _Object_vtable {
   /* ADD CODE HERE */
   int type;
+  int sth;  //??
   char *name;
-  Object *(*Object_new)(void);
+  Object *(*Object_new)();
   Object *(*Object_abort)(Object *);
-  String *(*Object_type_name)(Object *);
+  const String *(*Object_type_name)(Object *);
   Object *(*Object_copy)(Object *);
 };
 
 struct _Int_vtable {
-  int type;
-  char *name;
   /* ADD CODE HERE */
+  int type;
+  int sth;  //??
+  char *name;
+  Int *(*Object_new)();
+  Object *(*Object_abort)(Object *);
+  const String *(*Object_type_name)(Object *);
+  Int *(*Object_copy)(Int *);
 };
 
 struct _Bool_vtable {
   /* ADD CODE HERE */
+  int type;
+  int sth;  //??
+  char *name;
+  Bool *(*Object_new)();
+  Object *(*Object_abort)(Object *);
+  const String *(*Object_type_name)(Object *);
+  Bool *(*Object_copy)(Bool *);
 };
 
 struct _String_vtable {
   /* ADD CODE HERE */
+  int type;
+  int sth;  //??
+  char *name;
+  String *(*Object_new)();
+  Object *(*Object_abort)(Object *);
+  const String *(*Object_type_name)(Object *);
+  String *(*Object_copy)(String *);
+  int (*String_length)(String *);
+  String *(*String_concat)(String *, String *);
+  String *(*String_substr)(String *, int, int);
 };
 
 struct _IO_vtable {
   /* ADD CODE HERE */
+  int type;
+  int sth;  //??
+  char *name;
+  IO *(*Object_new)();
+  Object *(*Object_abort)(Object *);
+  const String *(*Object_type_name)(Object *);
+  IO *(*Object_copy)(IO *);
+  IO *(*IO_out_string)(IO *, String *);
+  IO *(*IO_out_int)(IO *, int);
+  String *(*IO_in_string)(IO *);
+  int (*IO_in_int)(IO *);
 };
 
 /* methods in class Object */
 Object *Object_abort(Object *self);
 const String *Object_type_name(Object *self);
 /* ADD CODE HERE */
+Object *Object_new();
+Object *Object_copy(Object *src);
 
 /* methods in class Int */
 /* ADD CODE HERE */
+Int *Int_new();
+Int *Int_copy(Int *src);
 
 /* methods in class Bool */
 /* ADD CODE HERE */
+Bool *Bool_new();
+Bool *Bool_copy(Bool *src);
 
 /* methods in class String */
 /* ADD CODE HERE */
+String *String_new();
+String *String_copy(String *src);
+int String_length(String *src);
+String *String_concat(String *src1, String *src2);
+String *String_substr(String *src1, int i1, int i2);
 
 /* methods in class IO */
 IO *IO_new(void);
+IO *IO_copy(IO *src);
 IO *IO_out_string(IO *self, String *s);
 IO *IO_out_int(IO *self, int x);
 String *IO_in_string(IO *self);
