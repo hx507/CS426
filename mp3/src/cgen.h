@@ -95,9 +95,21 @@ class CgenNode : public class__class {
 #endif
 
   ostream *ct_stream;
-  // entry -> value
-  std::vector<std::pair<method_class *, std::vector<operand>>> member_methods;
-  std::vector<attr_class *> member_attrs{};
+  struct Method {
+    method_class *method;
+    Symbol name;
+    std::vector<operand> args;
+    op_type ret_ty;
+    Expression expr;
+  };
+  std::vector<Method> member_methods;
+  struct Attr {
+    attr_class *attr;
+    Symbol name;
+    op_type type;
+    Expression init;
+  };
+  std::vector<Attr> member_attrs;
 
  private:
   CgenNode *parentnd;        // Parent of class

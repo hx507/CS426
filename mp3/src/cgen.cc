@@ -590,6 +590,26 @@ void CgenNode::set_parentnd(CgenNode *p) {
   assert(p != NULL);
   parentnd = p;
 }
+// My helpers
+#define str_eq(a, b) (strcmp(a, b) == 0)
+op_type sym_as_type(Symbol s, CgenNode *cls) {
+  char *symbol_str = s->get_string();
+  if (cgen_debug) std::cerr << "Operand conversion: " << symbol_str << endl;
+  if (str_eq(symbol_str, "Int")) return op_type(INT32);
+  if (str_eq(symbol_str, "int")) return op_type(INT32);
+  if (str_eq(symbol_str, "Bool")) return op_type(INT1);
+  if (str_eq(symbol_str, "bool")) return op_type(INT1);
+  if (str_eq(symbol_str, "SELF_TYPE")) return op_type(cls->get_type_name());
+  return op_type(symbol_str);
+}
+op_type sym_as_type(Symbol s, CgenEnvironment *env) {
+  return sym_as_type(s, env->get_class());
+}
+#define vp_init auto vp = ValuePrinter(*(env->cur_stream));
+#define nvp() (ValuePrinter(*(env->cur_stream)))
+#define ret_code_bin_op_vals(op, e1, e2) return nvp().op(e1, e2);
+#define ret_code_bin_op(op) \
+  ret_code_bin_op_vals(op, e1->code(env), e2->code(env))
 
 //
 // Class setup.  You may need to add parameters to this function so that
@@ -616,6 +636,13 @@ void CgenNode::setup(int tag, int depth, ostream *ct_stream) {
                                class_name, true));
 
   // Vtable and instance
+  // TODO: generate type_define and vtable
+  op_type vtable_type("_" + string(name->get_string()) + "_vtable", 1);
+  vector<op_type> attr_types{vtable_type};
+  for (auto attr : member_attrs) {
+    attr_types.push_back(attr.type);
+  }
+  vp.type_define(name->get_string(), attr_types);
 
 #endif
 }
@@ -631,17 +658,26 @@ void CgenNode::code_class() {
 
   CgenEnvironment env(*ct_stream, this);
 
-  for (auto attr : member_attrs) {  // add members to env for now
-    env.add_local(attr->get_name(), *new operand);
+  // for (auto attr : member_attrs)  // add members to env for now
+  // env.add_local(attr->get_name(), *new operand);
+
+  // Generate methods
+  for (auto m : member_methods) m.method->code(&env);
+
+  // Generate obj_new
+  ValuePrinter vp(*ct_stream);
+  op_type self_type_ptr(get_type_name() + "*");
+
+  vp.define(self_type_ptr, std::string(get_name()->get_string()) + "_new", {});
+  {
+    vp.begin_block("entry");
+    // TODO: generate new body
+    vp.begin_block("abort");
+    vp.call({}, {VOID}, "abort", true, {});
+    vp.unreachable();
+    vp.end_define();
   }
 
-  for (auto m : member_methods) {
-    m.first->code(&env);
-  }
-
-  // for (auto f : features) {
-  // f->code(&env);
-  //}
   // ADD CODE HERE
 }
 
@@ -649,6 +685,7 @@ void CgenNode::code_class() {
 // and assigning each attribute a slot in the class structure.
 void CgenNode::layout_features() {
   // ADD CODE HERE
+  member_attrs = parentnd->member_attrs;
   for (auto f : features) {
     f->layout_feature(this);
   }
@@ -761,25 +798,6 @@ operand get_class_tag(operand src, CgenNode *src_cls, CgenEnvironment *env) {
   return operand();
 }
 #endif
-
-// My helpers
-#define str_eq(a, b) (strcmp(a, b) == 0)
-op_type sym_as_type(Symbol s, CgenNode *cls) {
-  char *symbol_str = s->get_string();
-  if (cgen_debug) std::cerr << "Operand conversion: " << symbol_str << endl;
-  if (str_eq(symbol_str, "Int")) return op_type(INT32);
-  if (str_eq(symbol_str, "Bool")) return op_type(INT1);
-  if (str_eq(symbol_str, "SELF_TYPE")) return op_type(cls->get_type_name());
-  return op_type(symbol_str);
-}
-op_type sym_as_type(Symbol s, CgenEnvironment *env) {
-  return sym_as_type(s, env->get_class());
-}
-#define vp_init auto vp = ValuePrinter(*(env->cur_stream));
-#define nvp() (ValuePrinter(*(env->cur_stream)))
-#define ret_code_bin_op_vals(op, e1, e2) return nvp().op(e1, e2);
-#define ret_code_bin_op(op) \
-  ret_code_bin_op_vals(op, e1->code(env), e2->code(env))
 
 //
 // Create a method body
@@ -949,7 +967,6 @@ operand divide_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "div" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  // TODO: insert code check for zero
   vp_init;
   auto is_zero = vp.icmp(EQ, e2->code(env), int_value(0));
   auto ok = env->new_ok_label();
@@ -1102,7 +1119,8 @@ void method_class::layout_feature(CgenNode *cls) {
   assert(0 && "Unsupported case for phase 1");
 #else
   // ADD CODE HERE
-  // CgenEnvironment env(*cls->ct_stream, cls);
+  CgenNode::Method entry{.method = this, .name = name, .expr = expr};
+
   string method_name = cls->get_type_name() + "." + name->get_string();
 
   operand self({cls->get_type_name() + "*"}, "self");
@@ -1112,7 +1130,11 @@ void method_class::layout_feature(CgenNode *cls) {
     operand arg(arg_ty, formal->get_name()->get_string());
     args.push_back(arg);
   }
-  cls->member_methods.push_back({this, args});
+  entry.args = args;
+
+  entry.ret_ty = sym_as_type(get_return_type(), cls);
+
+  cls->member_methods.push_back(entry);
 
 #endif
 }
@@ -1136,7 +1158,9 @@ void attr_class::layout_feature(CgenNode *cls) {
   assert(0 && "Unsupported case for phase 1");
 #else
   // ADD CODE HERE
-  cls->member_attrs.push_back(this);
+  CgenNode::Attr entry{.attr = this, .name = name, .init = init};
+  entry.type = sym_as_type(type_decl, cls);
+  cls->member_attrs.push_back(entry);
 #endif
 }
 

@@ -192,7 +192,7 @@ int IO_in_int(IO *self) {
 /* ADD CODE HERE FOR METHODS OF OTHER BUILTIN CLASSES */
 Object *Object_new() {
   Object *ret = (Object *)malloc(sizeof(Object));
-  *ret = {.vtblptr = &_Object_vtable_prototype};
+  ret->vtblptr = &_Object_vtable_prototype;
   return ret;
 }
 Object *Object_copy(Object *src) {
@@ -203,20 +203,23 @@ Object *Object_copy(Object *src) {
 
 Int *Int_new() {
   Int *ret = (Int *)malloc(sizeof(Int));
-  *ret = {.vtblptr = &_Int_vtable_prototype, .val = 0};
+  ret->vtblptr = &_Int_vtable_prototype;
+  ret->val = 0;
   return ret;
 }
 
 Bool *Bool_new() {
   Bool *ret = (Bool *)malloc(sizeof(Bool));
-  *ret = {.vtblptr = &_Bool_vtable_prototype, .val = 0};
+  ret->vtblptr = &_Bool_vtable_prototype;
+  ret->val = false;
   return ret;
 }
 
 char *empty_string = (char *)"";
 String *String_new() {
   String *ret = (String *)malloc(sizeof(String));
-  *ret = {.vtblptr = &_String_vtable_prototype, .val = empty_string};
+  ret->vtblptr = &_String_vtable_prototype;
+  ret->val = empty_string;
   return ret;
 }
 int String_length(String *src) { return strlen(src->val); }
@@ -242,6 +245,6 @@ String *String_substr(String *src, int i1, int i2) {
 
 IO *IO_new() {
   IO *ret = (IO *)malloc(sizeof(IO));
-  *ret = {.vtblptr = &_IO_vtable_prototype};
+  ret->vtblptr = &_IO_vtable_prototype;
   return ret;
 }

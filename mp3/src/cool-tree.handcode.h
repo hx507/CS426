@@ -88,6 +88,9 @@ typedef Cases_class *Cases;
   virtual void make_alloca(CgenEnvironment *env);                              \
   void code(CgenEnvironment *env);
 
+#define attr_EXTRAS  \
+  virtual Symbol get_type_decl() {return type_decl;}\
+  virtual Expression get_init() {return init;}
 #define method_EXTRAS                                                          \
   virtual Symbol get_return_type() { return return_type; }
 
