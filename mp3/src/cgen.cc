@@ -599,11 +599,27 @@ op_type sym_as_type(Symbol s, CgenNode *cls) {
   if (str_eq(symbol_str, "int")) return op_type(INT32);
   if (str_eq(symbol_str, "Bool")) return op_type(INT1);
   if (str_eq(symbol_str, "bool")) return op_type(INT1);
+  if (str_eq(symbol_str, "sbyte")) return op_type(INT8);
+  if (str_eq(symbol_str, "sbyte*")) return op_type(INT8_PTR);
   if (str_eq(symbol_str, "SELF_TYPE")) return op_type(cls->get_type_name());
   return op_type(symbol_str);
 }
 op_type sym_as_type(Symbol s, CgenEnvironment *env) {
   return sym_as_type(s, env->get_class());
+}
+bool is_basic_type(Symbol s) {
+  char *symbol_str = s->get_string();
+  if (str_eq(symbol_str, "Int")) return true;
+  if (str_eq(symbol_str, "int")) return true;
+  if (str_eq(symbol_str, "Bool")) return true;
+  if (str_eq(symbol_str, "bool")) return true;
+  if (string(symbol_str).find("*") != string::npos) return true;
+  return false;
+}
+op_type sym_as_type_passable(Symbol s, CgenNode *cls) {
+  auto ty = sym_as_type(s, cls);
+  if (is_basic_type(s)) return ty;
+  return ty.get_ptr_type();
 }
 #define vp_init auto vp = ValuePrinter(*(env->cur_stream));
 #define nvp() (ValuePrinter(*(env->cur_stream)))
@@ -625,7 +641,7 @@ bool replace(std::string &str, const std::string &from, const std::string &to) {
 }
 std::string replaceAll(std::string str, const std::string &from,
                        const std::string &to) {
-  if (from.empty()) return;
+  if (from.empty()) return "";
   size_t start_pos = 0;
   while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
     str.replace(start_pos, from.length(), to);
@@ -633,6 +649,18 @@ std::string replaceAll(std::string str, const std::string &from,
                                // 'x' with 'yx'
   }
   return str;
+}
+op_type return_type_boxed(op_type ty) {
+  auto id = ty.get_id();
+  if (id == INT1 || id == INT8_PTR || id == INT32) return ty;
+  return ty.get_ptr_type();
+}
+operand get_init_val(op_type ty, ValuePrinter &vp) {
+  auto id = ty.get_id();
+  if (id == INT1) return const_value{{INT1}, "0", false};
+  if (id == INT8_PTR) return const_value{{INT8_PTR}, "null", false};
+  if (id == INT32) return const_value{{INT32}, "0", false};
+  return vp.bitcast(const_value{{INT8_PTR}, "null", false}, ty);
 }
 
 //
@@ -711,17 +739,52 @@ void CgenNode::code_class() {
   CgenEnvironment env(*ct_stream, this);
 
   // Generate methods, except inherited ones
-  for (auto m : member_methods)
-    if (list_contains(features, m.method)) m.method->code(&env);
+  // for (auto m : member_methods)
+  // if (list_contains(features, m.method)) m.method->code(&env);
 
   // Generate obj_new
   ValuePrinter vp(*ct_stream);
-  op_type self_type_ptr(get_type_name() + "*");
+  string class_name = name->get_string();
+  op_type self_type_ptr(get_type_name(), 1);
+  op_type self_type = self_type_ptr.get_deref_type();
+  string vtable_type_name = "_" + string(name->get_string()) + "_vtable";
+  op_type vtable_type(vtable_type_name, 1);
+  string prototype_name = vtable_type_name + "_prototype";
 
   vp.define(self_type_ptr, std::string(get_name()->get_string()) + "_new", {});
   {
+    auto ok_label = env.new_ok_label();
     vp.begin_block("entry");
-    // TODO: generate new body
+
+    operand size_addr = vp.getelementptr(
+        vtable_type.get_deref_type(),
+        const_value(vtable_type, "@" + prototype_name, true), int_value(0),
+        int_value(1), op_type(INT32).get_ptr_type());
+    operand size = vp.load({INT32}, size_addr);
+    operand new_ptr = vp.bitcast(vp.malloc_mem(size), self_type_ptr);
+    vp.branch_cond(vp.icmp(EQ, new_ptr, const_value{{"null"}, "null", false}),
+                   ok_label, "abort");
+
+    vp.begin_block(ok_label);
+    // fill in vtable ptr
+    operand vtable_dst_addr =
+        vp.getelementptr(self_type, new_ptr, int_value(0), int_value(0),
+                         vtable_type.get_ptr_type());
+    vp.store(global_value{vtable_type, prototype_name}, vtable_dst_addr);
+
+    int i = 1;  // initialize fields
+    for (auto attr : member_attrs) {
+      operand init_val = attr.init->code(&env);
+      if (attr.init->no_code()) init_val = get_init_val(attr.type, vp);
+
+      operand dst_addr =
+          vp.getelementptr(self_type, new_ptr, int_value(0), int_value(i),
+                           attr.type.get_ptr_type());
+      vp.store(init_val, dst_addr);
+      i++;
+    }
+    vp.ret(new_ptr);
+
     vp.begin_block("abort");
     vp.call({}, {VOID}, "abort", true, {});
     vp.unreachable();
@@ -854,17 +917,12 @@ operand get_class_tag(operand src, CgenNode *src_cls, CgenEnvironment *env) {
 //
 // Create a method body
 //
-op_type return_type_boxed(op_type ty) {
-  auto id = ty.get_id();
-  if (id == INT1 || id == INT8_PTR || id == INT32) return ty;
-  return ty.get_ptr_type();
-}
 void method_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "method" << endl;
   // ADD CODE HERE
   vp_init;
   string method_name =
-      env->get_class()->get_type_name() + "." + name->get_string();
+      env->get_class()->get_type_name() + "_" + name->get_string();
 
   operand self({env->get_class()->get_type_name() + "*"}, "self");
   std::vector<operand> args{self};
@@ -1173,26 +1231,26 @@ void method_class::layout_feature(CgenNode *cls) {
   // ADD CODE HERE
   CgenNode::Method entry{.method = this, .name = name, .expr = expr};
 
-  string method_name = cls->get_type_name() + "." + name->get_string();
+  string method_name = cls->get_type_name() + "_" + name->get_string();
 
   operand self({cls->get_type_name() + "*"}, "self");
 
   std::vector<op_type> arg_types{self.get_type()};
   std::vector<operand> args{self};
   for (auto formal : formals) {
-    op_type arg_ty = sym_as_type(formal->get_type_decl(), cls);
+    op_type arg_ty = sym_as_type_passable(formal->get_type_decl(), cls);
     operand arg(arg_ty, formal->get_name()->get_string());
     arg_types.push_back(arg_ty);
     args.push_back(arg);
   }
   entry.args = args;
   entry.arg_types = arg_types;
-  entry.ret_ty = sym_as_type(get_return_type(), cls);
-  entry.func_ty = op_func_type(entry.ret_ty.get_ptr_type(), arg_types);
+  entry.ret_ty = sym_as_type_passable(get_return_type(), cls);
 
-  string func_name = string(cls->get_type_name()) + "." + name->get_string();
-  global_value func_global({func_name}, func_name);
-  entry.func_val = const_value({func_name}, func_global.get_name(), false);
+  entry.func_ty = op_func_type(entry.ret_ty, arg_types);
+
+  global_value func_global({method_name}, method_name);
+  entry.func_val = const_value({method_name}, func_global.get_name(), false);
 
   cls->member_methods.push_back(entry);
 
@@ -1219,7 +1277,7 @@ void attr_class::layout_feature(CgenNode *cls) {
 #else
   // ADD CODE HERE
   CgenNode::Attr entry{.attr = this, .name = name, .init = init};
-  entry.type = sym_as_type(type_decl, cls);
+  entry.type = sym_as_type_passable(type_decl, cls);
   cls->member_attrs.push_back(entry);
 #endif
 }
