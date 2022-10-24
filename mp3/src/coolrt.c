@@ -21,40 +21,45 @@ const char default_string[] = "";
 /* Class vtable prototypes */
 const Object_vtable _Object_vtable_prototype = {
     .type = 0,
+    .size = sizeof(Object),
     .name = (char *)Object_string,
     .Object_new = Object_new,
     .Object_abort = Object_abort,
     .Object_type_name = Object_type_name,
     .Object_copy = Object_copy};
 const Int_vtable _Int_vtable_prototype = {.type = 1,
+                                          .size = sizeof(Int),
                                           .name = (char *)Int_string,
                                           .Object_new = Int_new,
                                           .Object_abort = Object_abort,
                                           .Object_type_name = Object_type_name,
-                                          .Object_copy = Int_copy};
+                                          .Object_copy = Object_copy};
 const Bool_vtable _Bool_vtable_prototype = {
     .type = 2,
+    .size = sizeof(Bool),
     .name = (char *)Bool_string,
     .Object_new = Bool_new,
     .Object_abort = Object_abort,
     .Object_type_name = Object_type_name,
-    .Object_copy = Bool_copy};
+    .Object_copy = Object_copy};
 const String_vtable _String_vtable_prototype = {
     .type = 3,
+    .size = sizeof(String),
     .name = (char *)String_string,
     .Object_new = String_new,
     .Object_abort = Object_abort,
     .Object_type_name = Object_type_name,
-    .Object_copy = String_copy,
+    .Object_copy = Object_copy,
     .String_length = String_length,
     .String_concat = String_concat,
     .String_substr = String_substr};
 const IO_vtable _IO_vtable_prototype = {.type = 4,
+                                        .size = sizeof(IO),
                                         .name = (char *)IO_string,
                                         .Object_new = IO_new,
                                         .Object_abort = Object_abort,
                                         .Object_type_name = Object_type_name,
-                                        .Object_copy = IO_copy,
+                                        .Object_copy = Object_copy,
                                         .IO_out_string = IO_out_string,
                                         .IO_out_int = IO_out_int,
                                         .IO_in_string = IO_in_string,
@@ -191,8 +196,8 @@ Object *Object_new() {
   return ret;
 }
 Object *Object_copy(Object *src) {
-  Object *ret = Object_new();
-  *ret = *src;
+  Object *ret = (Object *)malloc(src->vtblptr->size);
+  memcpy(ret, src, src->vtblptr->size);
   return ret;
 }
 
@@ -201,20 +206,10 @@ Int *Int_new() {
   *ret = {.vtblptr = &_Int_vtable_prototype, .val = 0};
   return ret;
 }
-Int *Int_copy(Int *src) {
-  Int *ret = Int_new();
-  *ret = *src;
-  return ret;
-}
 
 Bool *Bool_new() {
   Bool *ret = (Bool *)malloc(sizeof(Bool));
   *ret = {.vtblptr = &_Bool_vtable_prototype, .val = 0};
-  return ret;
-}
-Bool *Bool_copy(Bool *src) {
-  Bool *ret = Bool_new();
-  *ret = *src;
   return ret;
 }
 
@@ -224,30 +219,29 @@ String *String_new() {
   *ret = {.vtblptr = &_String_vtable_prototype, .val = empty_string};
   return ret;
 }
-String *String_copy(String *src) {
-  String *ret = String_new();
-  *ret = *src;
-  return ret;
-}
 int String_length(String *src) { return strlen(src->val); }
 String *String_concat(String *src1, String *src2) {
   String *newstr = String_new();
-  newstr->val = strcat(src1->val, src2->val);
+  newstr->val =
+      (char *)calloc(String_length(src1) + String_length(src2) + 1, 1);
+  strcat(newstr->val, src1->val);
+  strcat(newstr->val, src2->val);
   return newstr;
 }
 String *String_substr(String *src, int i1, int i2) {
   String *newstr = String_new();
-  newstr->val = strncpy(src->val, src->val + i1, i2);
+  if (String_length(src) <= i1 + i2) {
+    fprintf(stderr, "At %s(line %d): substring index oob\n", __FILE__,
+            __LINE__);
+    abort();
+  }
+  newstr->val = (char *)calloc(String_length(src), 1);
+  newstr->val = strncpy(newstr->val, src->val + i1, i2);
   return newstr;
 }
 
 IO *IO_new() {
   IO *ret = (IO *)malloc(sizeof(IO));
   *ret = {.vtblptr = &_IO_vtable_prototype};
-  return ret;
-}
-IO *IO_copy(IO *src) {
-  IO *ret = IO_new();
-  *ret = *src;
   return ret;
 }

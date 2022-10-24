@@ -12,6 +12,8 @@
 
 // ----------------------------- END DESIGN DOCS --------------------------- //
 
+#include <utility>
+
 #include "cool-tree.h"
 #include "symtab.h"
 #include "value_printer.h"
@@ -92,8 +94,12 @@ class CgenNode : public class__class {
   void codeGenMainmain();
 #endif
 
- private:
   ostream *ct_stream;
+  // entry -> value
+  std::vector<std::pair<method_class *, std::vector<operand>>> member_methods;
+  std::vector<attr_class *> member_attrs{};
+
+ private:
   CgenNode *parentnd;        // Parent of class
   List<CgenNode> *children;  // Children of class
   Basicness basic_status;    // `Basic' or 'NotBasic'

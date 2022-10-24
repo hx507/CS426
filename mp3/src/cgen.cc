@@ -520,6 +520,8 @@ void CgenClassTable::code_module() {
 #ifdef MP3
 void CgenClassTable::code_classes(CgenNode *c) {
   // ADD CODE HERE
+  c->code_class();
+  for (auto child : c->get_children()) code_classes(child);
 }
 #endif
 
@@ -606,6 +608,14 @@ void CgenNode::setup(int tag, int depth, ostream *ct_stream) {
   layout_features();
 
   // ADD CODE HERE
+  ValuePrinter vp(*ct_stream);
+  // Name of class
+  string class_name = name->get_string();
+  vp.init_constant(std::string("str.") + class_name,
+                   const_value(op_arr_type(INT8, class_name.length() + 1),
+                               class_name, true));
+
+  // Vtable and instance
 
 #endif
 }
@@ -619,6 +629,19 @@ void CgenNode::code_class() {
   // No code generation for basic classes. The runtime will handle that.
   if (basic()) return;
 
+  CgenEnvironment env(*ct_stream, this);
+
+  for (auto attr : member_attrs) {  // add members to env for now
+    env.add_local(attr->get_name(), *new operand);
+  }
+
+  for (auto m : member_methods) {
+    m.first->code(&env);
+  }
+
+  // for (auto f : features) {
+  // f->code(&env);
+  //}
   // ADD CODE HERE
 }
 
@@ -741,13 +764,16 @@ operand get_class_tag(operand src, CgenNode *src_cls, CgenEnvironment *env) {
 
 // My helpers
 #define str_eq(a, b) (strcmp(a, b) == 0)
-op_type sym_as_type(Symbol s) {
+op_type sym_as_type(Symbol s, CgenNode *cls) {
   char *symbol_str = s->get_string();
   if (cgen_debug) std::cerr << "Operand conversion: " << symbol_str << endl;
   if (str_eq(symbol_str, "Int")) return op_type(INT32);
   if (str_eq(symbol_str, "Bool")) return op_type(INT1);
-  // TODO Support self type and stuff here
+  if (str_eq(symbol_str, "SELF_TYPE")) return op_type(cls->get_type_name());
   return op_type(symbol_str);
+}
+op_type sym_as_type(Symbol s, CgenEnvironment *env) {
+  return sym_as_type(s, env->get_class());
 }
 #define vp_init auto vp = ValuePrinter(*(env->cur_stream));
 #define nvp() (ValuePrinter(*(env->cur_stream)))
@@ -758,19 +784,33 @@ op_type sym_as_type(Symbol s) {
 //
 // Create a method body
 //
+op_type return_type_boxed(op_type ty) {
+  auto id = ty.get_id();
+  if (id == INT1 || id == INT8_PTR || id == INT32) return ty;
+  return ty.get_ptr_type();
+}
 void method_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "method" << endl;
   // ADD CODE HERE
   vp_init;
   string method_name =
       env->get_class()->get_type_name() + "." + name->get_string();
-  // TODO Support formals as argument
-  vp.define(sym_as_type(get_return_type()), method_name, {});
+
+  operand self({env->get_class()->get_type_name() + "*"}, "self");
+  std::vector<operand> args{self};
+  for (auto formal : formals) {
+    op_type arg_ty = sym_as_type(formal->get_type_decl(), env);
+    operand arg(arg_ty, formal->get_name()->get_string());
+    args.push_back(arg);
+  }
+
+  vp.define(return_type_boxed(sym_as_type(get_return_type(), env)), method_name,
+            args);
 
   operand ret_op = expr->code(env);
   // derefence basic types on return
-  if (ret_op.get_type().get_id() != sym_as_type(return_type).get_id())
-    ret_op = vp.load(sym_as_type(return_type), ret_op);
+  if (ret_op.get_type().get_id() != sym_as_type(return_type, env).get_id())
+    ret_op = vp.load(sym_as_type(return_type, env), ret_op);
 
   vp.ret(ret_op);
 
@@ -868,7 +908,7 @@ operand let_class::code(CgenEnvironment *env) {
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   vp_init;
-  op_type ty = sym_as_type(type_decl);
+  op_type ty = sym_as_type(type_decl, env);
 
   operand val = init->code(env);
   // operand dst_reg(ty, identifier->get_string());
@@ -1062,6 +1102,18 @@ void method_class::layout_feature(CgenNode *cls) {
   assert(0 && "Unsupported case for phase 1");
 #else
   // ADD CODE HERE
+  // CgenEnvironment env(*cls->ct_stream, cls);
+  string method_name = cls->get_type_name() + "." + name->get_string();
+
+  operand self({cls->get_type_name() + "*"}, "self");
+  std::vector<operand> args{self};
+  for (auto formal : formals) {
+    op_type arg_ty = sym_as_type(formal->get_type_decl(), cls);
+    operand arg(arg_ty, formal->get_name()->get_string());
+    args.push_back(arg);
+  }
+  cls->member_methods.push_back({this, args});
+
 #endif
 }
 
@@ -1084,6 +1136,7 @@ void attr_class::layout_feature(CgenNode *cls) {
   assert(0 && "Unsupported case for phase 1");
 #else
   // ADD CODE HERE
+  cls->member_attrs.push_back(this);
 #endif
 }
 

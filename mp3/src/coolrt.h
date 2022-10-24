@@ -51,7 +51,7 @@ struct IO {
 struct _Object_vtable {
   /* ADD CODE HERE */
   int type;
-  int sth;  //??
+  int size;  //??
   char *name;
   Object *(*Object_new)();
   Object *(*Object_abort)(Object *);
@@ -62,34 +62,34 @@ struct _Object_vtable {
 struct _Int_vtable {
   /* ADD CODE HERE */
   int type;
-  int sth;  //??
+  int size;  //??
   char *name;
   Int *(*Object_new)();
   Object *(*Object_abort)(Object *);
   const String *(*Object_type_name)(Object *);
-  Int *(*Object_copy)(Int *);
+  Object *(*Object_copy)(Object *);
 };
 
 struct _Bool_vtable {
   /* ADD CODE HERE */
   int type;
-  int sth;  //??
+  int size;  //??
   char *name;
   Bool *(*Object_new)();
   Object *(*Object_abort)(Object *);
   const String *(*Object_type_name)(Object *);
-  Bool *(*Object_copy)(Bool *);
+  Object *(*Object_copy)(Object *);
 };
 
 struct _String_vtable {
   /* ADD CODE HERE */
   int type;
-  int sth;  //??
+  int size;  //??
   char *name;
   String *(*Object_new)();
   Object *(*Object_abort)(Object *);
   const String *(*Object_type_name)(Object *);
-  String *(*Object_copy)(String *);
+  Object *(*Object_copy)(Object *);
   int (*String_length)(String *);
   String *(*String_concat)(String *, String *);
   String *(*String_substr)(String *, int, int);
@@ -98,12 +98,12 @@ struct _String_vtable {
 struct _IO_vtable {
   /* ADD CODE HERE */
   int type;
-  int sth;  //??
+  int size;  //??
   char *name;
   IO *(*Object_new)();
   Object *(*Object_abort)(Object *);
   const String *(*Object_type_name)(Object *);
-  IO *(*Object_copy)(IO *);
+  Object *(*Object_copy)(Object *);
   IO *(*IO_out_string)(IO *, String *);
   IO *(*IO_out_int)(IO *, int);
   String *(*IO_in_string)(IO *);
@@ -120,24 +120,20 @@ Object *Object_copy(Object *src);
 /* methods in class Int */
 /* ADD CODE HERE */
 Int *Int_new();
-Int *Int_copy(Int *src);
 
 /* methods in class Bool */
 /* ADD CODE HERE */
 Bool *Bool_new();
-Bool *Bool_copy(Bool *src);
 
 /* methods in class String */
 /* ADD CODE HERE */
 String *String_new();
-String *String_copy(String *src);
 int String_length(String *src);
 String *String_concat(String *src1, String *src2);
 String *String_substr(String *src1, int i1, int i2);
 
 /* methods in class IO */
 IO *IO_new(void);
-IO *IO_copy(IO *src);
 IO *IO_out_string(IO *self, String *s);
 IO *IO_out_int(IO *self, int x);
 String *IO_in_string(IO *self);

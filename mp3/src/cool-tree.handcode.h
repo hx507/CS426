@@ -82,6 +82,7 @@ typedef Cases_class *Cases;
   virtual void code(CgenEnvironment *env) = 0;
 
 #define Feature_SHARED_EXTRAS                                                  \
+  Symbol get_name() { return name; }                                           \
   void dump_with_types(ostream &, int);                                        \
   void layout_feature(CgenNode *cls);                                          \
   virtual void make_alloca(CgenEnvironment *env);                              \
@@ -111,7 +112,8 @@ typedef Cases_class *Cases;
   Symbol get_type_decl() { return type_decl; }                                 \
   Expression get_expr() { return expr; }                                       \
   void make_alloca(CgenEnvironment *);                                         \
-  operand alloc_op;                                                            \
+  op_type alloca_type;                                                         \
+  operand alloca_op;                                                           \
   operand code(operand expr_val, operand tag, const op_type join_type,         \
                CgenEnvironment *env);                                          \
   void dump_with_types(ostream &, int);
@@ -143,6 +145,7 @@ typedef Cases_class *Cases;
 #define let_EXTRAS                                                             \
   operand alloca_op;
 #define typcase_EXTRAS                                                         \
+  op_type alloca_type;                                                         \
   operand alloca_op;
 
 #endif /* COOL_TREE_HANDCODE_H */
