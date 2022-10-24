@@ -617,6 +617,23 @@ bool list_contains(L list, T target) {
     if (l == target) return true;
   return false;
 }
+bool replace(std::string &str, const std::string &from, const std::string &to) {
+  size_t start_pos = str.find(from);
+  if (start_pos == std::string::npos) return false;
+  str.replace(start_pos, from.length(), to);
+  return true;
+}
+std::string replaceAll(std::string str, const std::string &from,
+                       const std::string &to) {
+  if (from.empty()) return;
+  size_t start_pos = 0;
+  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+    str.replace(start_pos, from.length(), to);
+    start_pos += to.length();  // In case 'to' contains 'from', like replacing
+                               // 'x' with 'yx'
+  }
+  return str;
+}
 
 //
 // Class setup.  You may need to add parameters to this function so that
@@ -655,8 +672,15 @@ void CgenNode::setup(int tag, int depth, ostream *ct_stream) {
 
   // VTable
   vector<op_type> vtable_types{{INT32}, {INT32}, {INT8_PTR}};
+  // i32 ptrtoint (%Main* getelementptr (%Main, %Main* null, i32 1) to i32),
   vector<const_value> vtable_init_values{
-      int_value(tag), int_value(-1),
+      int_value(tag),
+      const_value(
+          {INT32},
+          replaceAll(
+              "ptrtoint (%!!* getelementptr (%!!, %!!* null, i32 1) to i32)",
+              "!!", class_name),
+          false),
       const_value(op_arr_type(INT8, class_name.length() + 1),
                   string("@str.") + class_name, true)};
   for (auto method : member_methods) {
