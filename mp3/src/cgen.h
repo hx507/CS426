@@ -98,9 +98,13 @@ class CgenNode : public class__class {
   struct Method {
     method_class *method;
     Symbol name;
+    Expression expr;
+    std::vector<op_type> arg_types;
     std::vector<operand> args;
     op_type ret_ty;
-    Expression expr;
+
+    op_func_type func_ty;
+    const_value func_val;
   };
   std::vector<Method> member_methods;
   struct Attr {

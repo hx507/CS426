@@ -611,6 +611,13 @@ op_type sym_as_type(Symbol s, CgenEnvironment *env) {
 #define ret_code_bin_op(op) \
   ret_code_bin_op_vals(op, e1->code(env), e2->code(env))
 
+template <class L, class T>
+bool list_contains(L list, T target) {
+  for (auto l : list)
+    if (l == target) return true;
+  return false;
+}
+
 //
 // Class setup.  You may need to add parameters to this function so that
 // the classtable can provide setup information (such as the class tag
@@ -631,18 +638,39 @@ void CgenNode::setup(int tag, int depth, ostream *ct_stream) {
   ValuePrinter vp(*ct_stream);
   // Name of class
   string class_name = name->get_string();
-  vp.init_constant(std::string("str.") + class_name,
-                   const_value(op_arr_type(INT8, class_name.length() + 1),
-                               class_name, true));
+  const_value type_name_const(op_arr_type(INT8, class_name.length() + 1),
+                              class_name, true);
+  vp.init_constant(string("str.") + class_name, type_name_const);
 
   // Vtable and instance
-  // TODO: generate type_define and vtable
-  op_type vtable_type("_" + string(name->get_string()) + "_vtable", 1);
+  string vtable_type_name = "_" + string(name->get_string()) + "_vtable";
+  op_type vtable_type(vtable_type_name, 1);
+
+  // Type
   vector<op_type> attr_types{vtable_type};
   for (auto attr : member_attrs) {
     attr_types.push_back(attr.type);
   }
   vp.type_define(name->get_string(), attr_types);
+
+  // VTable
+  vector<op_type> vtable_types{{INT32}, {INT32}, {INT8_PTR}};
+  vector<const_value> vtable_init_values{
+      int_value(tag), int_value(-1),
+      const_value(op_arr_type(INT8, class_name.length() + 1),
+                  string("@str.") + class_name, true)};
+  for (auto method : member_methods) {
+    vtable_types.push_back(method.func_ty);
+    vtable_init_values.push_back(method.func_val);
+  }
+  vp.type_define(vtable_type_name, vtable_types);
+
+  // TODO: generate type_define and vtable
+  // Prototype
+  string prototype_name = vtable_type_name + "_prototype";
+  vp.init_struct_constant(
+      global_value{vtable_type.get_deref_type(), prototype_name}, vtable_types,
+      vtable_init_values);
 
 #endif
 }
@@ -658,11 +686,9 @@ void CgenNode::code_class() {
 
   CgenEnvironment env(*ct_stream, this);
 
-  // for (auto attr : member_attrs)  // add members to env for now
-  // env.add_local(attr->get_name(), *new operand);
-
-  // Generate methods
-  for (auto m : member_methods) m.method->code(&env);
+  // Generate methods, except inherited ones
+  for (auto m : member_methods)
+    if (list_contains(features, m.method)) m.method->code(&env);
 
   // Generate obj_new
   ValuePrinter vp(*ct_stream);
@@ -685,7 +711,9 @@ void CgenNode::code_class() {
 // and assigning each attribute a slot in the class structure.
 void CgenNode::layout_features() {
   // ADD CODE HERE
+  // Inherit everything from parent
   member_attrs = parentnd->member_attrs;
+  member_methods = parentnd->member_methods;
   for (auto f : features) {
     f->layout_feature(this);
   }
@@ -1124,15 +1152,23 @@ void method_class::layout_feature(CgenNode *cls) {
   string method_name = cls->get_type_name() + "." + name->get_string();
 
   operand self({cls->get_type_name() + "*"}, "self");
+
+  std::vector<op_type> arg_types{self.get_type()};
   std::vector<operand> args{self};
   for (auto formal : formals) {
     op_type arg_ty = sym_as_type(formal->get_type_decl(), cls);
     operand arg(arg_ty, formal->get_name()->get_string());
+    arg_types.push_back(arg_ty);
     args.push_back(arg);
   }
   entry.args = args;
-
+  entry.arg_types = arg_types;
   entry.ret_ty = sym_as_type(get_return_type(), cls);
+  entry.func_ty = op_func_type(entry.ret_ty.get_ptr_type(), arg_types);
+
+  string func_name = string(cls->get_type_name()) + "." + name->get_string();
+  global_value func_global({func_name}, func_name);
+  entry.func_val = const_value({func_name}, func_global.get_name(), false);
 
   cls->member_methods.push_back(entry);
 
