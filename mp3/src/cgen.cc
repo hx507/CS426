@@ -552,6 +552,7 @@ void CgenClassTable::code_classes(CgenNode *c) {
 // Create LLVM entry point. This function will initiate our Cool program
 // by generating the code to execute (new Main).main()
 //
+op_type main_return_type;
 void CgenClassTable::code_main() {
   // Define a function main that has no parameters and returns an i32
 
@@ -581,7 +582,7 @@ void CgenClassTable::code_main() {
 #else
   // MP3
   operand main_obj = vp.call({{}}, {"Main*"}, "Main_new", true, {});
-  vp.call({{"Main*"}}, {"Object*"}, "Main_main", true, {main_obj});
+  vp.call({{"Main*"}}, main_return_type, "Main_main", true, {main_obj});
 
 #endif
   vp.ret(int_value(0));
@@ -961,13 +962,12 @@ void method_class::code(CgenEnvironment *env) {
   vp.define(return_type_boxed(sym_as_type(get_return_type(), env)), method_name,
             args);
 
-  /*
-operand ret_op = expr->code(env);
-// derefence basic types on return
-if (ret_op.get_type().get_id() != sym_as_type(return_type, env).get_id())
-ret_op = vp.load(sym_as_type(return_type, env), ret_op);
+  operand ret_op = expr->code(env);
+  // derefence basic types on return
+  if (ret_op.get_type().get_id() != sym_as_type(return_type, env).get_id())
+    ret_op = vp.load(sym_as_type(return_type, env), ret_op);
 
-vp.ret(ret_op);*/
+  vp.ret(ret_op);
 
   vp.begin_block("abort");
   vp.call({}, {VOID}, "abort", true, {});
@@ -1189,8 +1189,10 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-    // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
-    // MORE MEANINGFUL
+  // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
+  // MORE MEANINGFUL
+  dump(std::cout, 3);
+  std::cout << "bbb\n";
 #endif
   return operand();
 }
@@ -1275,6 +1277,7 @@ void method_class::layout_feature(CgenNode *cls) {
   entry.args = args;
   entry.arg_types = arg_types;
   entry.ret_ty = sym_as_type_passable(get_return_type(), cls);
+  if (str_eq(method_name.c_str(), "Main_main")) main_return_type = entry.ret_ty;
 
   entry.func_ty = op_func_type(entry.ret_ty, arg_types);
 
