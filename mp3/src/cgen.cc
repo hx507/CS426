@@ -7,6 +7,8 @@
 
 #include <alloca.h>
 #include <strings.h>
+
+#include "operand.h"
 #define EXTERN
 #include <sstream>
 #include <string>
@@ -427,6 +429,7 @@ void CgenClassTable::code_constants() {
 #ifdef MP3
 
   // ADD CODE HERE
+  stringtable.code_string_table(*ct_stream, this);
 #endif
 }
 
@@ -434,6 +437,26 @@ void CgenClassTable::code_constants() {
 void StringEntry::code_def(ostream &s, CgenClassTable *ct) {
 #ifdef MP3
   // ADD CODE HERE
+  ValuePrinter vp(s);
+  string literal_name = string("str.") + std::to_string(index);
+  string object_name = string("String.") + std::to_string(index);
+
+  string class_name = "String";
+  op_type self_type_ptr(class_name, 1);
+  op_type self_type = self_type_ptr.get_deref_type();
+  string vtable_type_name = "_" + class_name + "_vtable";
+  op_type vtable_type(vtable_type_name, 1);
+  string prototype_name = vtable_type_name + "_prototype";
+  const_value vtable_val =
+      const_value{vtable_type, "@" + prototype_name, false};
+
+  op_type literal_ty = op_arr_type(INT8, strlen(this->str) + 1);
+  const_value literal_const(literal_ty, this->str, true);
+  vp.init_constant(literal_name, literal_const);
+
+  vp.init_struct_constant(
+      global_value{self_type, object_name}, {vtable_type, {INT8_PTR}},
+      {vtable_val, const_value{literal_ty, "@" + literal_name, false}});
 #endif
 }
 
@@ -558,7 +581,7 @@ void CgenClassTable::code_main() {
 #else
   // MP3
   operand main_obj = vp.call({{}}, {"Main*"}, "Main_new", true, {});
-  vp.call({{"Main*"}}, {"Object*"}, "Main.main", true, {main_obj});
+  vp.call({{"Main*"}}, {"Object*"}, "Main_main", true, {main_obj});
 
 #endif
   vp.ret(int_value(0));
@@ -660,6 +683,8 @@ operand get_init_val(op_type ty, ValuePrinter &vp) {
   if (id == INT1) return const_value{{INT1}, "0", false};
   if (id == INT8_PTR) return const_value{{INT8_PTR}, "null", false};
   if (id == INT32) return const_value{{INT32}, "0", false};
+  if (str_eq(ty.get_name().c_str(), "\%String*"))
+    return vp.call({}, op_type{"String", 1}, "String_new", true, {});
   return vp.bitcast(const_value{{INT8_PTR}, "null", false}, ty);
 }
 
@@ -739,8 +764,8 @@ void CgenNode::code_class() {
   CgenEnvironment env(*ct_stream, this);
 
   // Generate methods, except inherited ones
-  // for (auto m : member_methods)
-  // if (list_contains(features, m.method)) m.method->code(&env);
+  for (auto m : member_methods)
+    if (list_contains(features, m.method)) m.method->code(&env);
 
   // Generate obj_new
   ValuePrinter vp(*ct_stream);
@@ -750,6 +775,7 @@ void CgenNode::code_class() {
   string vtable_type_name = "_" + string(name->get_string()) + "_vtable";
   op_type vtable_type(vtable_type_name, 1);
   string prototype_name = vtable_type_name + "_prototype";
+  global_value vtable_val = global_value{vtable_type, prototype_name};
 
   vp.define(self_type_ptr, std::string(get_name()->get_string()) + "_new", {});
   {
@@ -770,7 +796,7 @@ void CgenNode::code_class() {
     operand vtable_dst_addr =
         vp.getelementptr(self_type, new_ptr, int_value(0), int_value(0),
                          vtable_type.get_ptr_type());
-    vp.store(global_value{vtable_type, prototype_name}, vtable_dst_addr);
+    vp.store(vtable_val, vtable_dst_addr);
 
     int i = 1;  // initialize fields
     for (auto attr : member_attrs) {
@@ -935,12 +961,13 @@ void method_class::code(CgenEnvironment *env) {
   vp.define(return_type_boxed(sym_as_type(get_return_type(), env)), method_name,
             args);
 
-  operand ret_op = expr->code(env);
-  // derefence basic types on return
-  if (ret_op.get_type().get_id() != sym_as_type(return_type, env).get_id())
-    ret_op = vp.load(sym_as_type(return_type, env), ret_op);
+  /*
+operand ret_op = expr->code(env);
+// derefence basic types on return
+if (ret_op.get_type().get_id() != sym_as_type(return_type, env).get_id())
+ret_op = vp.load(sym_as_type(return_type, env), ret_op);
 
-  vp.ret(ret_op);
+vp.ret(ret_op);*/
 
   vp.begin_block("abort");
   vp.call({}, {VOID}, "abort", true, {});
@@ -1176,7 +1203,9 @@ operand string_const_class::code(CgenEnvironment *env) {
     // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
     // MORE MEANINGFUL
 #endif
-  return operand();
+  auto idx = stringtable.lookup_string(this->token->get_string());
+  return global_value(op_type{"String", 1},
+                      string("String.") + std::to_string(1));
 }
 
 operand dispatch_class::code(CgenEnvironment *env) {

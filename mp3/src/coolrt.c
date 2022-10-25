@@ -19,6 +19,12 @@ const char IO_string[] = "IO";
 const char default_string[] = "";
 
 /* Class vtable prototypes */
+extern const Object_vtable _Object_vtable_prototype;
+extern const Int_vtable _Int_vtable_prototype;
+extern const Bool_vtable _Bool_vtable_prototype;
+extern const String_vtable _String_vtable_prototype;
+extern const IO_vtable _IO_vtable_prototype;
+/*
 const Object_vtable _Object_vtable_prototype = {
     .type = 0,
     .size = sizeof(Object),
@@ -64,6 +70,7 @@ const IO_vtable _IO_vtable_prototype = {.type = 4,
                                         .IO_out_int = IO_out_int,
                                         .IO_in_string = IO_in_string,
                                         .IO_in_int = IO_in_int};
+*/
 
 /*
 // Methods in class object (only some are provided to you)
