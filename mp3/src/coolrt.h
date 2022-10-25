@@ -138,3 +138,6 @@ IO *IO_out_string(IO *self, String *s);
 IO *IO_out_int(IO *self, int x);
 String *IO_in_string(IO *self);
 int IO_in_int(IO *self);
+
+Int create_Int(int x);
+Bool create_Bool(bool x);

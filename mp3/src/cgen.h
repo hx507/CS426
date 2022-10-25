@@ -126,6 +126,10 @@ class CgenNode : public class__class {
   int max_child;
 
   // ADD CODE HERE
+ public:
+  string vtable_type_name;
+  op_type vtable_ptr_ty;
+  string prototype_name;
 
  public:
   // COMPLETE FUNCTIONS

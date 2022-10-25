@@ -176,10 +176,12 @@ void CgenClassTable::setup_external_functions() {
   vp.declare({"String*"}, "String_substr", {{"String*"}, {INT32}, {INT32}});
 
   vp.declare({"Int*"}, "Int_new", {{}});
-  vp.declare({"Int*"}, "Int_init", {{"Int*"}, {INT32}});
 
   vp.declare({"Bool*"}, "Bool_new", {{}});
-  vp.declare({"Bool*"}, "Bool_init", {{"Bool*"}, {INT1}});
+
+  vp.declare({"Bool*"}, "create_Bool", {{"Bool*"}, {INT1}});
+  vp.declare({"Int*"}, "create_Int", {{"Int*"}, {INT32}});
+
 #endif
 }
 // Creates AST nodes for the basic classes and installs them in the class list
@@ -714,11 +716,11 @@ void CgenNode::setup(int tag, int depth, ostream *ct_stream) {
   vp.init_constant(string("str.") + class_name, type_name_const);
 
   // Vtable and instance
-  string vtable_type_name = "_" + string(name->get_string()) + "_vtable";
-  op_type vtable_type(vtable_type_name, 1);
+  this->vtable_type_name = "_" + string(name->get_string()) + "_vtable";
+  this->vtable_ptr_ty = op_type(vtable_type_name, 1);
 
   // Type
-  vector<op_type> attr_types{vtable_type};
+  vector<op_type> attr_types{vtable_ptr_ty};
   for (auto attr : member_attrs) {
     attr_types.push_back(attr.type);
   }
@@ -745,10 +747,10 @@ void CgenNode::setup(int tag, int depth, ostream *ct_stream) {
 
   // TODO: generate type_define and vtable
   // Prototype
-  string prototype_name = vtable_type_name + "_prototype";
+  prototype_name = vtable_type_name + "_prototype";
   vp.init_struct_constant(
-      global_value{vtable_type.get_deref_type(), prototype_name}, vtable_types,
-      vtable_init_values);
+      global_value{vtable_ptr_ty.get_deref_type(), prototype_name},
+      vtable_types, vtable_init_values);
 
 #endif
 }
@@ -773,10 +775,7 @@ void CgenNode::code_class() {
   string class_name = name->get_string();
   op_type self_type_ptr(get_type_name(), 1);
   op_type self_type = self_type_ptr.get_deref_type();
-  string vtable_type_name = "_" + string(name->get_string()) + "_vtable";
-  op_type vtable_type(vtable_type_name, 1);
-  string prototype_name = vtable_type_name + "_prototype";
-  global_value vtable_val = global_value{vtable_type, prototype_name};
+  global_value vtable_val = global_value{vtable_ptr_ty, prototype_name};
 
   vp.define(self_type_ptr, std::string(get_name()->get_string()) + "_new", {});
   {
@@ -784,8 +783,8 @@ void CgenNode::code_class() {
     vp.begin_block("entry");
 
     operand size_addr = vp.getelementptr(
-        vtable_type.get_deref_type(),
-        const_value(vtable_type, "@" + prototype_name, true), int_value(0),
+        vtable_ptr_ty.get_deref_type(),
+        const_value(vtable_ptr_ty, "@" + prototype_name, true), int_value(0),
         int_value(1), op_type(INT32).get_ptr_type());
     operand size = vp.load({INT32}, size_addr);
     operand new_ptr = vp.bitcast(vp.malloc_mem(size), self_type_ptr);
@@ -796,7 +795,7 @@ void CgenNode::code_class() {
     // fill in vtable ptr
     operand vtable_dst_addr =
         vp.getelementptr(self_type, new_ptr, int_value(0), int_value(0),
-                         vtable_type.get_ptr_type());
+                         vtable_ptr_ty.get_ptr_type());
     vp.store(vtable_val, vtable_dst_addr);
 
     int i = 1;  // initialize fields
@@ -928,6 +927,35 @@ void CgenEnvironment::kill_local() { var_table.exitscope(); }
 // (It's needed by the supplied code for typecase)
 operand conform(operand src, op_type type, CgenEnvironment *env) {
   // ADD CODE HERE (MP3 ONLY)
+  vp_init;
+  op_type src_type = src.get_type();
+
+  if (src_type.is_same_with(type)) return src;
+
+  // Cast
+  if (src_type.is_ptr() && type.is_ptr()) return vp.bitcast(src, type);
+
+  // Unbox
+  if (src_type.is_ptr() && src_type.is_int_object()) {
+    operand ptr = vp.getelementptr(src_type.get_deref_type(), int_value(0),
+                                   int_value(1), {INT32_PTR});
+    return vp.load({INT32}, ptr);
+  }
+
+  if (src_type.is_ptr() && src_type.is_int_object()) {
+    operand ptr = vp.getelementptr(src_type.get_deref_type(), int_value(0),
+                                   int_value(1), {INT1_PTR});
+    return vp.load({INT1}, ptr);
+  }
+
+  // TODO: Box
+  if (src_type.is_int_object()) {
+    return vp.call({{INT32}}, {"Int", 1}, "create_Int", true, {src});
+  }
+  if (src_type.is_int_object()) {
+    return vp.call({{INT1}}, {"Bool", 1}, "create_Bool", true, {src});
+  }
+
   return operand();
 }
 
@@ -937,7 +965,18 @@ operand conform(operand src, op_type type, CgenEnvironment *env) {
 // You need to look up and return the class tag for it's dynamic value
 operand get_class_tag(operand src, CgenNode *src_cls, CgenEnvironment *env) {
   // ADD CODE HERE (MP3 ONLY)
-  return operand();
+  vp_init;
+  if (!src.get_type().is_ptr()) return int_value(src_cls->get_tag());
+
+  operand vtb_ptr_addr =
+      vp.getelementptr(src.get_type(), int_value(0), int_value(0),
+                       src_cls->vtable_ptr_ty.get_ptr_type());
+  operand vtb_ptr = vp.load(src_cls->vtable_ptr_ty, vtb_ptr_addr);
+
+  operand tag_ptr = vp.getelementptr(src_cls->vtable_ptr_ty.get_deref_type(),
+                                     int_value(0), int_value(0), {INT32_PTR});
+  operand tag = vp.load({INT32}, tag_ptr);
+  return tag;
 }
 #endif
 
@@ -1191,8 +1230,14 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
 #else
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  dump(std::cout, 3);
   std::cout << "bbb\n";
+  operand self_val = expr->code(env);
+  std::vector<operand> actual_args{self_val};
+
+  for (auto exp : actual) {
+    actual_args.push_back(exp->code(env));
+  }
+
 #endif
   return operand();
 }

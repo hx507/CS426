@@ -255,3 +255,14 @@ IO *IO_new() {
   ret->vtblptr = &_IO_vtable_prototype;
   return ret;
 }
+Int *create_Int(int x) {
+  Int *i = Int_new();
+  i->val = x;
+  return i;
+}
+
+Bool *create_Bool(bool x) {
+  Bool *i = Bool_new();
+  i->val = x;
+  return i;
+}
