@@ -104,7 +104,9 @@ class CgenNode : public class__class {
     op_type ret_ty;
 
     op_func_type func_ty;
+    op_func_ptr_type func_ptr_ty;
     const_value func_val;
+    int vtable_idx;
   };
   std::vector<Method> member_methods;
   struct Attr {
@@ -112,8 +114,17 @@ class CgenNode : public class__class {
     Symbol name;
     op_type type;
     Expression init;
+    int attr_idx;
   };
   std::vector<Attr> member_attrs;
+  Method* get_method(Symbol target_name) {
+    for (auto& mm : member_methods)
+      if (mm.name == target_name) return &mm;
+  }
+  Attr* get_attr(Symbol target_name) {
+    for (auto& mm : member_attrs)
+      if (mm.name == target_name) return &mm;
+  }
 
  private:
   CgenNode *parentnd;        // Parent of class

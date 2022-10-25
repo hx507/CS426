@@ -941,7 +941,6 @@ operand conform(operand src, op_type type, CgenEnvironment *env) {
                                    int_value(1), {INT32_PTR});
     return vp.load({INT32}, ptr);
   }
-
   if (src_type.is_ptr() && src_type.is_int_object()) {
     operand ptr = vp.getelementptr(src_type.get_deref_type(), int_value(0),
                                    int_value(1), {INT1_PTR});
@@ -959,6 +958,29 @@ operand conform(operand src, op_type type, CgenEnvironment *env) {
   return operand();
 }
 
+operand load_vtable_ptr(operand src, CgenNode *src_cls, CgenEnvironment *env) {
+  vp_init;
+  operand vtb_ptr_addr =
+      vp.getelementptr(src.get_type(), int_value(0), int_value(0),
+                       src_cls->vtable_ptr_ty.get_ptr_type());
+  operand vtb_ptr = vp.load(src_cls->vtable_ptr_ty, vtb_ptr_addr);
+  return vtb_ptr;
+}
+
+operand ith_from_vtable(int i, op_type expected_ty, operand src,
+                        CgenNode *src_cls, CgenEnvironment *env) {
+  vp_init;
+  operand vtb_ptr_addr =
+      vp.getelementptr(src.get_type(), int_value(0), int_value(0),
+                       src_cls->vtable_ptr_ty.get_ptr_type());
+  operand vtb_ptr = vp.load(src_cls->vtable_ptr_ty, vtb_ptr_addr);
+
+  operand tag_ptr = vp.getelementptr(src_cls->vtable_ptr_ty.get_deref_type(),
+                                     int_value(0), int_value(i), expected_ty.get_ptr_type());
+  operand tag = vp.load(expected_ty, tag_ptr);
+  return tag;
+}
+
 // Retrieve the class tag from an object record.
 // src is the object we need the tag from.
 // src_class is the CgenNode for the *static* class of the expression.
@@ -968,15 +990,15 @@ operand get_class_tag(operand src, CgenNode *src_cls, CgenEnvironment *env) {
   vp_init;
   if (!src.get_type().is_ptr()) return int_value(src_cls->get_tag());
 
-  operand vtb_ptr_addr =
-      vp.getelementptr(src.get_type(), int_value(0), int_value(0),
-                       src_cls->vtable_ptr_ty.get_ptr_type());
-  operand vtb_ptr = vp.load(src_cls->vtable_ptr_ty, vtb_ptr_addr);
+  // operand vtb_ptr_addr =
+  // vp.getelementptr(src.get_type(), int_value(0), int_value(0),
+  // src_cls->vtable_ptr_ty.get_ptr_type());
+  // operand vtb_ptr = vp.load(src_cls->vtable_ptr_ty, vtb_ptr_addr);
 
-  operand tag_ptr = vp.getelementptr(src_cls->vtable_ptr_ty.get_deref_type(),
-                                     int_value(0), int_value(0), {INT32_PTR});
-  operand tag = vp.load({INT32}, tag_ptr);
-  return tag;
+  // operand tag_ptr = vp.getelementptr(src_cls->vtable_ptr_ty.get_deref_type(),
+  // int_value(0), int_value(0), {INT32_PTR});
+  // operand tag = vp.load({INT32}, tag_ptr);
+  return ith_from_vtable(0, {INT32}, src, src_cls, env);
 }
 #endif
 
@@ -990,11 +1012,14 @@ void method_class::code(CgenEnvironment *env) {
   string method_name =
       env->get_class()->get_type_name() + "_" + name->get_string();
 
-  operand self({env->get_class()->get_type_name() + "*"}, "self");
-  std::vector<operand> args{self};
+  operand self_op({env->get_class()->get_type_name(), 1}, "self");
+  env->add_local(self, self_op);
+
+  std::vector<operand> args{self_op};
   for (auto formal : formals) {
     op_type arg_ty = sym_as_type(formal->get_type_decl(), env);
     operand arg(arg_ty, formal->get_name()->get_string());
+    env->add_local(formal->get_name(), arg);
     args.push_back(arg);
   }
 
@@ -1002,6 +1027,7 @@ void method_class::code(CgenEnvironment *env) {
             args);
 
   operand ret_op = expr->code(env);
+
   // derefence basic types on return
   if (ret_op.get_type().get_id() != sym_as_type(return_type, env).get_id())
     ret_op = vp.load(sym_as_type(return_type, env), ret_op);
@@ -1205,8 +1231,23 @@ operand object_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "Object" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
+  vp_init;
   operand *src = env->lookup(name);
-  return nvp().load(src->get_type().get_deref_type(), *src);
+  if (src)
+    return nvp().load(src->get_type().get_deref_type(), *src);
+  else  // self type
+  {
+    operand self_ptr = *(env->lookup(self));
+    // operand self_loaded =
+    // vp.load(self_ptr->get_type().get_deref_type(), *self_ptr);
+    CgenNode::Attr *attr = env->get_class()->get_attr(name);
+
+    operand attr_ptr = vp.getelementptr(
+        // self_loaded.get_type().get_deref_type(), self_loaded, int_value(0),
+        self_ptr.get_type().get_deref_type(), self_ptr, int_value(0),
+        int_value(attr->attr_idx), attr->type.get_ptr_type());
+    return vp.load(attr->type, attr_ptr);
+  }
 }
 
 operand no_expr_class::code(CgenEnvironment *env) {
@@ -1228,16 +1269,42 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
+  vp_init;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  std::cout << "bbb\n";
+  // std::cout << "//bbb\n";
   operand self_val = expr->code(env);
+
+  if (self_val.get_type().get_id() == INT32)
+    self_val = conform(self_val, {"Int", 1}, env);
+  else if (self_val.get_type().get_id() == INT1)
+    self_val = conform(self_val, {"Bool", 1}, env);
+
+  op_type self_ty = self_val.get_type();
+
+  // TODO error handling with null_value{self_val.get_type()}
+
   std::vector<operand> actual_args{self_val};
 
   for (auto exp : actual) {
     actual_args.push_back(exp->code(env));
   }
 
+  CgenNode *self_cls = env->type_to_class(type_name);
+
+  CgenNode::Method *to_call = self_cls->get_method(name);
+  // TODO find the right vtable function, call it
+
+  operand func_to_call =
+      ith_from_vtable(to_call->vtable_idx, {"i8", 1}, self_val, self_cls, env);
+  func_to_call = vp.bitcast(func_to_call, to_call->func_ptr_ty);
+
+  for (int i = 0; i < actual_args.size(); i++) {
+    actual_args[i] = conform(actual_args[i], to_call->arg_types[i], env);
+  }
+
+  return vp.call(to_call->arg_types, to_call->ret_ty,
+                 to_call->method->get_name()->get_string(), true, actual_args);
 #endif
   return operand();
 }
@@ -1325,9 +1392,12 @@ void method_class::layout_feature(CgenNode *cls) {
   if (str_eq(method_name.c_str(), "Main_main")) main_return_type = entry.ret_ty;
 
   entry.func_ty = op_func_type(entry.ret_ty, arg_types);
+  entry.func_ptr_ty = op_func_ptr_type(entry.ret_ty, arg_types);
 
   global_value func_global({method_name}, method_name);
   entry.func_val = const_value({method_name}, func_global.get_name(), false);
+
+  entry.vtable_idx = cls->member_methods.size() + 3;
 
   cls->member_methods.push_back(entry);
 
@@ -1355,6 +1425,7 @@ void attr_class::layout_feature(CgenNode *cls) {
   // ADD CODE HERE
   CgenNode::Attr entry{.attr = this, .name = name, .init = init};
   entry.type = sym_as_type_passable(type_decl, cls);
+  entry.attr_idx = cls->member_attrs.size() + 1;
   cls->member_attrs.push_back(entry);
 #endif
 }
