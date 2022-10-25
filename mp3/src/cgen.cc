@@ -688,6 +688,8 @@ operand get_init_val(op_type ty, ValuePrinter &vp) {
   if (id == INT32) return const_value{{INT32}, "0", false};
   if (str_eq(ty.get_name().c_str(), "\%String*"))
     return vp.call({}, op_type{"String", 1}, "String_new", true, {});
+  if (str_eq(ty.get_name().c_str(), "\%IO*"))
+    return vp.call({}, op_type{"IO", 1}, "IO_new", true, {});
   return vp.bitcast(const_value{{INT8_PTR}, "null", false}, ty);
 }
 
@@ -789,7 +791,7 @@ void CgenNode::code_class() {
     operand size = vp.load({INT32}, size_addr);
     operand new_ptr = vp.bitcast(vp.malloc_mem(size), self_type_ptr);
     vp.branch_cond(vp.icmp(EQ, new_ptr, const_value{{"null"}, "null", false}),
-                   ok_label, "abort");
+                   "abort",ok_label);
 
     vp.begin_block(ok_label);
     // fill in vtable ptr
@@ -961,8 +963,8 @@ operand conform(operand src, op_type type, CgenEnvironment *env) {
 operand load_vtable_ptr(operand src, CgenNode *src_cls, CgenEnvironment *env) {
   vp_init;
   operand vtb_ptr_addr =
-      vp.getelementptr(src.get_type(), int_value(0), int_value(0),
-                       src_cls->vtable_ptr_ty.get_ptr_type());
+      vp.getelementptr(src.get_type().get_deref_type(), src, int_value(0),
+                       int_value(0), src_cls->vtable_ptr_ty.get_ptr_type());
   operand vtb_ptr = vp.load(src_cls->vtable_ptr_ty, vtb_ptr_addr);
   return vtb_ptr;
 }
@@ -971,12 +973,13 @@ operand ith_from_vtable(int i, op_type expected_ty, operand src,
                         CgenNode *src_cls, CgenEnvironment *env) {
   vp_init;
   operand vtb_ptr_addr =
-      vp.getelementptr(src.get_type(), int_value(0), int_value(0),
-                       src_cls->vtable_ptr_ty.get_ptr_type());
+      vp.getelementptr(src.get_type().get_deref_type(), src, int_value(0),
+                       int_value(0), src_cls->vtable_ptr_ty.get_ptr_type());
   operand vtb_ptr = vp.load(src_cls->vtable_ptr_ty, vtb_ptr_addr);
 
-  operand tag_ptr = vp.getelementptr(src_cls->vtable_ptr_ty.get_deref_type(),
-                                     int_value(0), int_value(i), expected_ty.get_ptr_type());
+  operand tag_ptr =
+      vp.getelementptr(src_cls->vtable_ptr_ty.get_deref_type(), vtb_ptr,
+                       int_value(0), int_value(i), expected_ty.get_ptr_type());
   operand tag = vp.load(expected_ty, tag_ptr);
   return tag;
 }
@@ -1243,7 +1246,6 @@ operand object_class::code(CgenEnvironment *env) {
     CgenNode::Attr *attr = env->get_class()->get_attr(name);
 
     operand attr_ptr = vp.getelementptr(
-        // self_loaded.get_type().get_deref_type(), self_loaded, int_value(0),
         self_ptr.get_type().get_deref_type(), self_ptr, int_value(0),
         int_value(attr->attr_idx), attr->type.get_ptr_type());
     return vp.load(attr->type, attr_ptr);
@@ -1272,7 +1274,6 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
   vp_init;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  // std::cout << "//bbb\n";
   operand self_val = expr->code(env);
 
   if (self_val.get_type().get_id() == INT32)
@@ -1295,16 +1296,25 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
   CgenNode::Method *to_call = self_cls->get_method(name);
   // TODO find the right vtable function, call it
 
-  operand func_to_call =
-      ith_from_vtable(to_call->vtable_idx, {"i8", 1}, self_val, self_cls, env);
-  func_to_call = vp.bitcast(func_to_call, to_call->func_ptr_ty);
+  // operand vtb_ptr = load_vtable_ptr(self_val, self_cls, env);
+  // operand func_ptr = vp.getelementptr(
+  // self_cls->vtable_ptr_ty.get_deref_type(), vtb_ptr, int_value(0),
+  // int_value(to_call->vtable_idx), to_call->func_ptr_ty);
+  // operand func_to_call = vp.load(to_call->func_ptr_ty, func_ptr);
+
+  // operand func_to_call =
+  // ith_from_vtable(to_call->vtable_idx, to_call->func_ptr_ty, self_val,
+  // self_cls, env);
+  // func_to_call = vp.bitcast(func_to_call, to_call->func_ptr_ty);
 
   for (int i = 0; i < actual_args.size(); i++) {
     actual_args[i] = conform(actual_args[i], to_call->arg_types[i], env);
   }
 
   return vp.call(to_call->arg_types, to_call->ret_ty,
-                 to_call->method->get_name()->get_string(), true, actual_args);
+                 self_cls->get_type_name() + "_" +
+                     to_call->method->get_name()->get_string(),
+                 true, actual_args);
 #endif
   return operand();
 }

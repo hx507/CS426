@@ -25,7 +25,14 @@ main:                                   # @main
 Main_main:                              # @Main_main
 	.cfi_startproc
 # %bb.0:
+	pushq	%rax
+	.cfi_def_cfa_offset 16
+	movq	24(%rdi), %rdi
+	movl	$198, %esi
+	callq	IO_out_int@PLT
 	movl	$1, %eax
+	popq	%rcx
+	.cfi_def_cfa_offset 8
 	retq
 .Lfunc_end1:
 	.size	Main_main, .Lfunc_end1-Main_main
@@ -49,13 +56,14 @@ Main_new:                               # @Main_new
 	movl	4(%r14), %edi
 	callq	malloc@PLT
 	testq	%rax, %rax
-	jne	.LBB2_2
+	je	.LBB2_2
 # %bb.1:                                # %ok.0
 	movq	%rax, %rbx
 	movq	%r14, (%rax)
 	movq	$5, 8(%rax)
 	movl	$7, 16(%rax)
-	movq	$0, 24(%rax)
+	callq	IO_new@PLT
+	movq	%rax, 24(%rbx)
 	movq	String.1@GOTPCREL(%rip), %rax
 	movq	%rax, 32(%rbx)
 	callq	String_new@PLT
