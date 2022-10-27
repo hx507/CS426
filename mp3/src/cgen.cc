@@ -1117,9 +1117,7 @@ operand cond_class::code(CgenEnvironment *env) {
          done_label = env->new_label("end_if", 0);
 
   operand pr_val = pred->code(env);
-  std::swap(null_stream, env->cur_stream);  // disable output for now
   op_type ret_ty = sym_as_type(this->get_type(), env);
-  std::swap(null_stream, env->cur_stream);  // enable again
 
   operand dst = vp.alloca_mem(ret_ty);
   vp.branch_cond(pr_val, true_label, false_label);
@@ -1446,8 +1444,16 @@ operand new__class::code(CgenEnvironment *env) {
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-    // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
-    // MORE MEANINGFUL
+  // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
+  // MORE MEANINGFUL
+  vp_init;
+  if (get_type() == SELF_TYPE) {
+    // TODO
+  } else {
+    CgenNode *cls = env->type_to_class(type_name);
+    op_type ret_ty{cls->get_type_name(), 1};
+    return vp.call({}, ret_ty, cls->get_type_name() + "_new", true, {});
+  }
 #endif
   return operand();
 }
