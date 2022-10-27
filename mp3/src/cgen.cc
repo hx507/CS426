@@ -1064,9 +1064,25 @@ operand assign_class::code(CgenEnvironment *env) {
   // MORE MEANINGFUL
   vp_init;
   operand val = expr->code(env);
-  operand dst = *(env->lookup(name));
-  vp.store(val, dst);
-  return dst;
+  operand *dst = env->lookup(name);
+  if (dst) {  // dst is local var
+    val = conform(val, dst->get_type().get_deref_type(), env);
+    vp.store(val, *dst);
+    return val;
+  } else {  // dst is attribute
+    operand self_ptr = *(env->lookup(self));
+    CgenNode::Attr *attr = env->get_class()->get_attr(name);
+
+    operand attr_ptr = vp.getelementptr(
+        self_ptr.get_type().get_deref_type(), self_ptr, int_value(0),
+        int_value(attr->attr_idx), attr->type.get_ptr_type());
+
+    val = conform(val, attr_ptr.get_type().get_deref_type(), env);
+    vp.store(val, attr_ptr);
+    return val;
+  }
+
+  return val;
 }
 
 operand cond_class::code(CgenEnvironment *env) {
@@ -1150,9 +1166,14 @@ operand let_class::code(CgenEnvironment *env) {
   env->add_local(identifier, dst_stack);
 
   if (val.is_empty()) {  // fill in default value if not specified
-    if (str_eq(type_decl->get_string(), "Int")) val = int_value(0);
-    if (str_eq(type_decl->get_string(), "Bool")) val = bool_value(false, true);
-  }
+    if (str_eq(type_decl->get_string(), "Int"))
+      val = int_value(0);
+    else if (str_eq(type_decl->get_string(), "Bool"))
+      val = bool_value(false, true);
+    else
+      val = null_value{ty};
+  } else
+    val = conform(val, ty, env);
   vp.store(val, dst_stack);
 
   return body->code(env);
@@ -1472,8 +1493,8 @@ void method_class::layout_feature(CgenNode *cls) {
 #endif
 }
 
-// If the source tag is >= the branch tag and <= (max child of the branch class)
-// tag, then the branch is a superclass of the source
+// If the source tag is >= the branch tag and <= (max child of the branch
+// class) tag, then the branch is a superclass of the source
 operand branch_class::code(operand expr_val, operand tag, op_type join_type,
                            CgenEnvironment *env) {
 #ifndef MP3
