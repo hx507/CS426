@@ -92,7 +92,8 @@ typedef Cases_class *Cases;
   virtual Symbol get_type_decl() {return type_decl;}\
   virtual Expression get_init() {return init;}
 #define method_EXTRAS                                                          \
-  virtual Symbol get_return_type() { return return_type; }
+  virtual Symbol get_return_type() { return return_type; }\
+  int n_local_var=0;
 
 #define Formal_EXTRAS                                                          \
   virtual Symbol get_type_decl() = 0; /* ## */                                 \

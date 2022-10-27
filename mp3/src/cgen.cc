@@ -1023,22 +1023,36 @@ void method_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "method" << endl;
   // ADD CODE HERE
   vp_init;
+  auto &o = *(env->cur_stream);
   string method_name =
       env->get_class()->get_type_name() + "_" + name->get_string();
 
   operand self_op({env->get_class()->get_type_name(), 1}, "self");
-  env->add_local(self, self_op);
 
   std::vector<operand> args{self_op};
+  operand self_stack = {self_op.get_type().get_ptr_type(), "self_ptr"};
+  env->add_local(self, self_stack);  // add self
+
   for (auto formal : formals) {
     op_type arg_ty = sym_as_type(formal->get_type_decl(), env);
     operand arg(arg_ty, formal->get_name()->get_string());
-    env->add_local(formal->get_name(), arg);
+    operand arg_stack = {arg_ty.get_ptr_type(),
+                         string(arg.get_name()).substr(1) + "_ptr"};
+    env->add_local(formal->get_name(), arg_stack);
     args.push_back(arg);
   }
 
   vp.define(return_type_boxed(sym_as_type(get_return_type(), env)), method_name,
             args);
+  // Push args on stack
+  for (auto arg : args) {
+    op_type arg_ty = arg.get_type();
+    operand arg_stack = {arg_ty.get_ptr_type(),
+                         string(arg.get_name()).substr(1) + "_ptr"};
+    vp.alloca_mem(o, arg_ty, arg_stack);
+    vp.store(arg, arg_stack);
+    n_local_var++;
+  }
 
   operand ret_op = expr->code(env);
 
@@ -1052,11 +1066,17 @@ void method_class::code(CgenEnvironment *env) {
   vp.call({}, {VOID}, "abort", true, {});
   vp.unreachable();
   vp.end_define();
+  while (n_local_var-- > 0) env->kill_local();
 }
 
 //
 // Codegen for expressions.  Note that each expression has a value.
 //
+
+operand deref_stack(operand stack_ptr, CgenEnvironment *env) {
+  vp_init;
+  return vp.load(stack_ptr.get_type().get_deref_type(), stack_ptr);
+}
 
 operand assign_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "assign" << endl;
@@ -1064,13 +1084,15 @@ operand assign_class::code(CgenEnvironment *env) {
   // MORE MEANINGFUL
   vp_init;
   operand val = expr->code(env);
-  operand *dst = env->lookup(name);
-  if (dst) {  // dst is local var
-    val = conform(val, dst->get_type().get_deref_type(), env);
-    vp.store(val, *dst);
+  operand *dst_ptr = env->lookup(name);
+
+  if (dst_ptr) {  // dst is local var
+    val = conform(val, dst_ptr->get_type().get_deref_type(), env);
+    vp.store(val, *dst_ptr);
     return val;
+
   } else {  // dst is attribute
-    operand self_ptr = *(env->lookup(self));
+    operand self_ptr = deref_stack(*(env->lookup(self)), env);
     CgenNode::Attr *attr = env->get_class()->get_attr(name);
 
     operand attr_ptr = vp.getelementptr(
@@ -1096,7 +1118,7 @@ operand cond_class::code(CgenEnvironment *env) {
 
   operand pr_val = pred->code(env);
   std::swap(null_stream, env->cur_stream);  // disable output for now
-  op_type ret_ty = then_exp->code(env).get_type();
+  op_type ret_ty = sym_as_type(this->get_type(), env);
   std::swap(null_stream, env->cur_stream);  // enable again
 
   operand dst = vp.alloca_mem(ret_ty);
@@ -1104,11 +1126,13 @@ operand cond_class::code(CgenEnvironment *env) {
 
   vp.begin_block(true_label);
   operand then_op = then_exp->code(env);
+  then_op = conform(then_op, ret_ty, env);
   vp.store(then_op, dst);
   vp.branch_uncond(done_label);
 
   vp.begin_block(false_label);
   operand else_op = else_exp->code(env);
+  else_op = conform(else_op, ret_ty, env);
   vp.store(else_op, dst);
   vp.branch_uncond(done_label);
 
@@ -1268,24 +1292,21 @@ operand object_class::code(CgenEnvironment *env) {
   // MORE MEANINGFUL
   vp_init;
   operand *src = env->lookup(name);
-  if (src)
-    // return nvp().load(src->get_type().get_deref_type(), *src);
-    return *src;
+  if (src) return deref_stack(*src, env);
+  // return *src;
   else  // self type
   {
-    operand self_ptr = *(env->lookup(self));
-    // operand self_loaded =
-    // vp.load(self_ptr->get_type().get_deref_type(), *self_ptr);
+    operand self_loaded = deref_stack(*(env->lookup(self)), env);
     CgenNode::Attr *attr = env->get_class()->get_attr(name);
 
     if (attr) {
       operand attr_ptr = vp.getelementptr(
-          self_ptr.get_type().get_deref_type(), self_ptr, int_value(0),
+          self_loaded.get_type().get_deref_type(), self_loaded, int_value(0),
           int_value(attr->attr_idx), attr->type.get_ptr_type());
       return vp.load(attr->type, attr_ptr);
     }
 
-    return self_ptr;
+    return self_loaded;
   }
 }
 
@@ -1334,22 +1355,9 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
   CgenNode::Method *to_call = self_cls->get_method(name);
   // TODO find the right vtable function, call it
 
-  // operand vtb_ptr = load_vtable_ptr(self_val, self_cls, env);
-  // operand func_ptr = vp.getelementptr(
-  // self_cls->vtable_ptr_ty.get_deref_type(), vtb_ptr, int_value(0),
-  // int_value(to_call->vtable_idx), to_call->func_ptr_ty);
-  // operand func_to_call{to_call->func_ptr_ty.get_deref_type(),
-  // env->new_name()}; vp.load(o, func_to_call.get_type(), func_ptr,
-  // func_to_call);
-
   for (int i = 0; i < actual_args.size(); i++) {
     actual_args[i] = conform(actual_args[i], to_call->arg_types[i], env);
   }
-
-  // operand ret{to_call->ret_ty, env->new_name()};
-  // vp.call(o, to_call->arg_types, func_to_call.get_name().substr(1), false,
-  // actual_args, ret);
-  // return ret;
 
   return vp.call(to_call->arg_types, to_call->ret_ty,
                  self_cls->get_type_name() + "_" +
