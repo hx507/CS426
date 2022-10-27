@@ -791,7 +791,7 @@ void CgenNode::code_class() {
     operand size = vp.load({INT32}, size_addr);
     operand new_ptr = vp.bitcast(vp.malloc_mem(size), self_type_ptr);
     vp.branch_cond(vp.icmp(EQ, new_ptr, const_value{{"null"}, "null", false}),
-                   "abort",ok_label);
+                   "abort", ok_label);
 
     vp.begin_block(ok_label);
     // fill in vtable ptr
@@ -935,7 +935,9 @@ operand conform(operand src, op_type type, CgenEnvironment *env) {
   if (src_type.is_same_with(type)) return src;
 
   // Cast
-  if (src_type.is_ptr() && type.is_ptr()) return vp.bitcast(src, type);
+  if (src_type.is_ptr() && type.is_ptr()) {
+    return vp.bitcast(src, type);
+  }
 
   // Unbox
   if (src_type.is_ptr() && src_type.is_int_object()) {
@@ -949,7 +951,7 @@ operand conform(operand src, op_type type, CgenEnvironment *env) {
     return vp.load({INT1}, ptr);
   }
 
-  // TODO: Box
+  // Box
   if (src_type.is_int_object()) {
     return vp.call({{INT32}}, {"Int", 1}, "create_Int", true, {src});
   }
@@ -957,7 +959,7 @@ operand conform(operand src, op_type type, CgenEnvironment *env) {
     return vp.call({{INT1}}, {"Bool", 1}, "create_Bool", true, {src});
   }
 
-  return operand();
+  return src;
 }
 
 operand load_vtable_ptr(operand src, CgenNode *src_cls, CgenEnvironment *env) {
@@ -1237,7 +1239,8 @@ operand object_class::code(CgenEnvironment *env) {
   vp_init;
   operand *src = env->lookup(name);
   if (src)
-    return nvp().load(src->get_type().get_deref_type(), *src);
+    // return nvp().load(src->get_type().get_deref_type(), *src);
+    return *src;
   else  // self type
   {
     operand self_ptr = *(env->lookup(self));
@@ -1245,10 +1248,14 @@ operand object_class::code(CgenEnvironment *env) {
     // vp.load(self_ptr->get_type().get_deref_type(), *self_ptr);
     CgenNode::Attr *attr = env->get_class()->get_attr(name);
 
-    operand attr_ptr = vp.getelementptr(
-        self_ptr.get_type().get_deref_type(), self_ptr, int_value(0),
-        int_value(attr->attr_idx), attr->type.get_ptr_type());
-    return vp.load(attr->type, attr_ptr);
+    if (attr) {
+      operand attr_ptr = vp.getelementptr(
+          self_ptr.get_type().get_deref_type(), self_ptr, int_value(0),
+          int_value(attr->attr_idx), attr->type.get_ptr_type());
+      return vp.load(attr->type, attr_ptr);
+    }
+
+    return self_ptr;
   }
 }
 
@@ -1271,6 +1278,7 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
+  auto &o = *env->cur_stream;
   vp_init;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
@@ -1300,16 +1308,18 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
   // operand func_ptr = vp.getelementptr(
   // self_cls->vtable_ptr_ty.get_deref_type(), vtb_ptr, int_value(0),
   // int_value(to_call->vtable_idx), to_call->func_ptr_ty);
-  // operand func_to_call = vp.load(to_call->func_ptr_ty, func_ptr);
-
-  // operand func_to_call =
-  // ith_from_vtable(to_call->vtable_idx, to_call->func_ptr_ty, self_val,
-  // self_cls, env);
-  // func_to_call = vp.bitcast(func_to_call, to_call->func_ptr_ty);
+  // operand func_to_call{to_call->func_ptr_ty.get_deref_type(),
+  // env->new_name()}; vp.load(o, func_to_call.get_type(), func_ptr,
+  // func_to_call);
 
   for (int i = 0; i < actual_args.size(); i++) {
     actual_args[i] = conform(actual_args[i], to_call->arg_types[i], env);
   }
+
+  // operand ret{to_call->ret_ty, env->new_name()};
+  // vp.call(o, to_call->arg_types, func_to_call.get_name().substr(1), false,
+  // actual_args, ret);
+  // return ret;
 
   return vp.call(to_call->arg_types, to_call->ret_ty,
                  self_cls->get_type_name() + "_" +
@@ -1327,9 +1337,13 @@ operand string_const_class::code(CgenEnvironment *env) {
     // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
     // MORE MEANINGFUL
 #endif
-  auto idx = stringtable.lookup_string(this->token->get_string());
+  auto idx = stringtable.lookup_string(this->token->get_string())->get_index();
+  //return const_value{
+      //{"String", 1},
+      //string("@") + stringtable.lookup_string(token->get_string())->get_string(),
+      //true};
   return global_value(op_type{"String", 1},
-                      string("String.") + std::to_string(1));
+                      string("String.") + std::to_string(idx));
 }
 
 operand dispatch_class::code(CgenEnvironment *env) {
@@ -1337,8 +1351,48 @@ operand dispatch_class::code(CgenEnvironment *env) {
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-    // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
-    // MORE MEANINGFUL
+  // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
+  // MORE MEANINGFUL
+  auto &o = *env->cur_stream;
+  vp_init;
+  // operand self_val = expr->code(env);
+
+  // if (self_val.get_type().get_id() == INT32)
+  // self_val = conform(self_val, {"Int", 1}, env);
+  // else if (self_val.get_type().get_id() == INT1)
+  // self_val = conform(self_val, {"Bool", 1}, env);
+
+  // op_type self_ty = self_val.get_type();
+
+  //// TODO error handling with null_value{self_val.get_type()}
+
+  // std::vector<operand> actual_args{self_val};
+
+  // for (auto exp : actual) {
+  // actual_args.push_back(exp->code(env));
+  //}
+
+  // CgenNode *self_cls = env->type_to_class(type_name);
+
+  // CgenNode::Method *to_call = self_cls->get_method(name);
+  //// TODO find the right vtable function, call it
+
+  // operand vtb_ptr = load_vtable_ptr(self_val, self_cls, env);
+  // operand func_ptr = vp.getelementptr(
+  // self_cls->vtable_ptr_ty.get_deref_type(), vtb_ptr, int_value(0),
+  // int_value(to_call->vtable_idx), to_call->func_ptr_ty);
+  // operand func_to_call{to_call->func_ptr_ty.get_deref_type(),
+  // env->new_name()}; vp.load(o, func_to_call.get_type(), func_ptr,
+  // func_to_call);
+
+  // for (int i = 0; i < actual_args.size(); i++) {
+  // actual_args[i] = conform(actual_args[i], to_call->arg_types[i], env);
+  //}
+
+  // operand ret{to_call->ret_ty, env->new_name()};
+  // vp.call(o, to_call->arg_types, func_to_call.get_name().substr(1), false,
+  // actual_args, ret);
+  // return ret;
 #endif
   return operand();
 }
@@ -1386,7 +1440,7 @@ void method_class::layout_feature(CgenNode *cls) {
 
   string method_name = cls->get_type_name() + "_" + name->get_string();
 
-  operand self({cls->get_type_name() + "*"}, "self");
+  operand self({cls->get_type_name(), 1}, "self");
 
   std::vector<op_type> arg_types{self.get_type()};
   std::vector<operand> args{self};
@@ -1576,7 +1630,7 @@ void string_const_class::make_alloca(CgenEnvironment *env) {
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-    // ADD ANY CODE HERE
+  // ADD ANY CODE HERE
 #endif
 }
 

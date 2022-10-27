@@ -117,13 +117,15 @@ class CgenNode : public class__class {
     int attr_idx;
   };
   std::vector<Attr> member_attrs;
-  Method* get_method(Symbol target_name) {
-    for (auto& mm : member_methods)
+  Method *get_method(Symbol target_name) {
+    for (auto &mm : member_methods)
       if (mm.name == target_name) return &mm;
+    return nullptr;
   }
-  Attr* get_attr(Symbol target_name) {
-    for (auto& mm : member_attrs)
+  Attr *get_attr(Symbol target_name) {
+    for (auto &mm : member_attrs)
       if (mm.name == target_name) return &mm;
+    return nullptr;
   }
 
  private:

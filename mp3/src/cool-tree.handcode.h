@@ -151,4 +151,5 @@ typedef Cases_class *Cases;
   op_type alloca_type;                                                         \
   operand alloca_op;
 
+  
 #endif /* COOL_TREE_HANDCODE_H */
