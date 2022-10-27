@@ -231,6 +231,7 @@ class CgenEnvironment {
 
   // Must return the CgenNode for a class given the symbol of its name
   CgenNode *type_to_class(Symbol t);
+  CgenNode *op_type_to_class(op_type ty);
   // ADD CODE HERE
 };
 

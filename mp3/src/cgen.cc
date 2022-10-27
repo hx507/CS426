@@ -876,6 +876,15 @@ CgenNode *CgenEnvironment::type_to_class(Symbol t) {
   return t == SELF_TYPE ? get_class()
                         : get_class()->get_classtable()->lookup(t);
 }
+CgenNode *CgenEnvironment::op_type_to_class(op_type ty) {
+  while (ty.is_ptr()) ty = ty.get_deref_type();
+  op_type_id id = ty.get_id();
+
+  if (id == INT32) return type_to_class(Int);
+  if (id == INT1) return type_to_class(Bool);
+  Symbol s = idtable.lookup_string(ty.get_name().substr(1).c_str());
+  return type_to_class(s);
+}
 
 // Provided CgenEnvironment methods
 // Generate unique string names
@@ -1338,10 +1347,6 @@ operand string_const_class::code(CgenEnvironment *env) {
     // MORE MEANINGFUL
 #endif
   auto idx = stringtable.lookup_string(this->token->get_string())->get_index();
-  //return const_value{
-      //{"String", 1},
-      //string("@") + stringtable.lookup_string(token->get_string())->get_string(),
-      //true};
   return global_value(op_type{"String", 1},
                       string("String.") + std::to_string(idx));
 }
@@ -1355,44 +1360,43 @@ operand dispatch_class::code(CgenEnvironment *env) {
   // MORE MEANINGFUL
   auto &o = *env->cur_stream;
   vp_init;
-  // operand self_val = expr->code(env);
+  operand self_val = expr->code(env);
 
-  // if (self_val.get_type().get_id() == INT32)
-  // self_val = conform(self_val, {"Int", 1}, env);
-  // else if (self_val.get_type().get_id() == INT1)
-  // self_val = conform(self_val, {"Bool", 1}, env);
+  if (self_val.get_type().get_id() == INT32)
+    self_val = conform(self_val, {"Int", 1}, env);
+  else if (self_val.get_type().get_id() == INT1)
+    self_val = conform(self_val, {"Bool", 1}, env);
 
-  // op_type self_ty = self_val.get_type();
+  op_type self_ty = self_val.get_type();
 
-  //// TODO error handling with null_value{self_val.get_type()}
+  // TODO error handling with null_value{self_val.get_type()}
 
-  // std::vector<operand> actual_args{self_val};
+  std::vector<operand> actual_args{self_val};
 
-  // for (auto exp : actual) {
-  // actual_args.push_back(exp->code(env));
-  //}
+  for (auto exp : actual) {
+    actual_args.push_back(exp->code(env));
+  }
 
-  // CgenNode *self_cls = env->type_to_class(type_name);
+  CgenNode *self_cls = env->op_type_to_class(self_ty);
 
-  // CgenNode::Method *to_call = self_cls->get_method(name);
-  //// TODO find the right vtable function, call it
+  CgenNode::Method *to_call = self_cls->get_method(name);
+  // TODO find the right vtable function, call it
 
-  // operand vtb_ptr = load_vtable_ptr(self_val, self_cls, env);
-  // operand func_ptr = vp.getelementptr(
-  // self_cls->vtable_ptr_ty.get_deref_type(), vtb_ptr, int_value(0),
-  // int_value(to_call->vtable_idx), to_call->func_ptr_ty);
-  // operand func_to_call{to_call->func_ptr_ty.get_deref_type(),
-  // env->new_name()}; vp.load(o, func_to_call.get_type(), func_ptr,
-  // func_to_call);
+  operand vtb_ptr = load_vtable_ptr(self_val, self_cls, env);
+  operand func_ptr = vp.getelementptr(
+      self_cls->vtable_ptr_ty.get_deref_type(), vtb_ptr, int_value(0),
+      int_value(to_call->vtable_idx), to_call->func_ptr_ty);
+  operand func_to_call{to_call->func_ptr_ty.get_deref_type(), env->new_name()};
+  vp.load(o, func_to_call.get_type(), func_ptr, func_to_call);
 
-  // for (int i = 0; i < actual_args.size(); i++) {
-  // actual_args[i] = conform(actual_args[i], to_call->arg_types[i], env);
-  //}
+  for (int i = 0; i < actual_args.size(); i++) {
+    actual_args[i] = conform(actual_args[i], to_call->arg_types[i], env);
+  }
 
-  // operand ret{to_call->ret_ty, env->new_name()};
-  // vp.call(o, to_call->arg_types, func_to_call.get_name().substr(1), false,
-  // actual_args, ret);
-  // return ret;
+  operand ret{to_call->ret_ty, env->new_name()};
+  vp.call(o, to_call->arg_types, func_to_call.get_name().substr(1), false,
+          actual_args, ret);
+  return ret;
 #endif
   return operand();
 }
@@ -1630,7 +1634,7 @@ void string_const_class::make_alloca(CgenEnvironment *env) {
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-  // ADD ANY CODE HERE
+    // ADD ANY CODE HERE
 #endif
 }
 
