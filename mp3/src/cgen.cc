@@ -1043,8 +1043,8 @@ void method_class::code(CgenEnvironment *env) {
   operand ret_op = expr->code(env);
 
   // derefence basic types on return
-  if (ret_op.get_type().get_id() != sym_as_type(return_type, env).get_id())
-    ret_op = vp.load(sym_as_type(return_type, env), ret_op);
+  ret_op = conform(ret_op,
+                   return_type_boxed(sym_as_type(get_return_type(), env)), env);
 
   vp.ret(ret_op);
 
