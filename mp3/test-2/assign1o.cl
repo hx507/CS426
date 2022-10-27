@@ -8,12 +8,17 @@ class Main inherits IO
    io : IO;
    str1 : String <- "aaa";
    str2 : String;
-   main() : Int {{
-		--x<-7656; 
-		--out_int(x); 
+   main() : Object {{
+		out_string("\nattribute dynamic dispatch:\n");
+		x<-7656; 
+		out_int(x);
+		out_string(str1);
+		out_string("\ndynamic dispatch:\n");
 		out_int(199);
-		io@IO.out_int(198);
-		1;
+		self@IO.out_string("\nstatic dispatch:\n");
+		io@IO.out_int(1198);
+		self@IO.out_int(197);
+		self;
 	}};
 	(*
 	test() : Object {{
