@@ -1553,8 +1553,17 @@ operand isvoid_class::code(CgenEnvironment *env) {
 #ifndef MP3
   assert(0 && "Unsupported case for phase 1");
 #else
-    // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
-    // MORE MEANINGFUL
+  // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
+  // MORE MEANINGFUL
+  vp_init;
+
+  operand e1o = e1->code(env);
+  op_type e1ty = e1o.get_type();
+
+  if (!e1ty.is_ptr()) return bool_value(false, true);
+
+  return vp.icmp(EQ, e1o, null_value{e1ty});
+
 #endif
   return operand();
 }
