@@ -1364,10 +1364,15 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
     self_val = conform(self_val, {"Int", 1}, env);
   else if (self_val.get_type().get_id() == INT1)
     self_val = conform(self_val, {"Bool", 1}, env);
+  else {
+    // TODO error handling with null_value{self_val.get_type()}
+    auto ok = env->new_ok_label();
+    operand is_null = vp.icmp(EQ, self_val, null_value{self_val.get_type()});
+    vp.branch_cond(is_null, "abort", ok);
+    vp.begin_block(ok);
+  }
 
   op_type self_ty = self_val.get_type();
-
-  // TODO error handling with null_value{self_val.get_type()}
 
   std::vector<operand> actual_args{self_val};
 
