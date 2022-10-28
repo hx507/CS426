@@ -1215,8 +1215,10 @@ operand let_class::code(CgenEnvironment *env) {
   } else
     val = conform(val, ty, env);
   vp.store(val, dst_stack);
-  env->method_var_count++;
-  return body->code(env);
+
+  operand ret = body->code(env);
+  env->kill_local();
+  return ret;
 }
 
 operand plus_class::code(CgenEnvironment *env) {
