@@ -774,6 +774,8 @@ void CgenNode::code_class() {
 
   // Generate obj_new
   ValuePrinter vp(*ct_stream);
+  auto &o = *(env.cur_stream);
+
   string class_name = name->get_string();
   op_type self_type_ptr(get_type_name(), 1);
   op_type self_type = self_type_ptr.get_deref_type();
@@ -794,6 +796,13 @@ void CgenNode::code_class() {
                    "abort", ok_label);
 
     vp.begin_block(ok_label);
+    // push self on stack
+    operand *self_stack =
+        new operand{new_ptr.get_type().get_ptr_type(), "self_ptr"};
+    vp.alloca_mem(o, self_type_ptr, *self_stack);
+    vp.store(new_ptr, *self_stack);
+    env.add_local(self, *self_stack);
+
     // fill in vtable ptr
     operand vtable_dst_addr =
         vp.getelementptr(self_type, new_ptr, int_value(0), int_value(0),
@@ -1307,7 +1316,7 @@ operand object_class::code(CgenEnvironment *env) {
     return deref_stack(*src, env);
   } else  // self type
   {
-    operand self_loaded = deref_stack(*(env->lookup(self)), env);
+    operand self_loaded = deref_stack(*env->lookup(self), env);
     CgenNode::Attr *attr = env->get_class()->get_attr(name);
 
     if (attr) {
