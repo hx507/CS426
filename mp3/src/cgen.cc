@@ -1529,7 +1529,11 @@ void method_class::layout_feature(CgenNode *cls) {
 
   entry.vtable_idx = cls->member_methods.size() + 3;
 
-  cls->member_methods.push_back(entry);
+  if (CgenNode::Method *parent_entry = cls->get_method(entry.name)) {
+    entry.vtable_idx = parent_entry->vtable_idx;
+    *parent_entry = entry;
+  } else
+    cls->member_methods.push_back(entry);
 
 #endif
 }
