@@ -206,6 +206,7 @@ class CgenEnvironment {
   CgenNode *cur_class;
 
  public:
+  int method_var_count = 0;
   std::ostream *cur_stream;
 
   // fresh name generation functions

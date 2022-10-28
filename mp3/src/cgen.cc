@@ -1030,15 +1030,16 @@ void method_class::code(CgenEnvironment *env) {
   operand self_op({env->get_class()->get_type_name(), 1}, "self");
 
   std::vector<operand> args{self_op};
-  operand self_stack = {self_op.get_type().get_ptr_type(), "self_ptr"};
-  env->add_local(self, self_stack);  // add self
+  operand* self_stack = new operand {self_op.get_type().get_ptr_type(), "self_ptr"};
+  env->add_local(self, *self_stack);  // add self
 
   for (auto formal : formals) {
-    op_type arg_ty = sym_as_type(formal->get_type_decl(), env);
+    op_type arg_ty =
+        sym_as_type_passable(formal->get_type_decl(), env->get_class());
     operand arg(arg_ty, formal->get_name()->get_string());
-    operand arg_stack = {arg_ty.get_ptr_type(),
+    operand* arg_stack = new operand{arg_ty.get_ptr_type(),
                          string(arg.get_name()).substr(1) + "_ptr"};
-    env->add_local(formal->get_name(), arg_stack);
+    env->add_local(formal->get_name(), *arg_stack);
     args.push_back(arg);
   }
 
@@ -1051,7 +1052,7 @@ void method_class::code(CgenEnvironment *env) {
                          string(arg.get_name()).substr(1) + "_ptr"};
     vp.alloca_mem(o, arg_ty, arg_stack);
     vp.store(arg, arg_stack);
-    n_local_var++;
+    env->method_var_count++;
   }
 
   operand ret_op = expr->code(env);
@@ -1066,7 +1067,7 @@ void method_class::code(CgenEnvironment *env) {
   vp.call({}, {VOID}, "abort", true, {});
   vp.unreachable();
   vp.end_define();
-  while (n_local_var-- > 0) env->kill_local();
+  while (env->method_var_count-- > 0) env->kill_local();
 }
 
 //
@@ -1180,7 +1181,7 @@ operand let_class::code(CgenEnvironment *env) {
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
   vp_init;
-  op_type ty = sym_as_type(type_decl, env);
+  op_type ty = sym_as_type_passable(type_decl, env->get_class());
 
   operand val = init->code(env);
   // operand dst_reg(ty, identifier->get_string());
@@ -1197,7 +1198,7 @@ operand let_class::code(CgenEnvironment *env) {
   } else
     val = conform(val, ty, env);
   vp.store(val, dst_stack);
-
+  env->method_var_count++;
   return body->code(env);
 }
 
@@ -1290,9 +1291,9 @@ operand object_class::code(CgenEnvironment *env) {
   // MORE MEANINGFUL
   vp_init;
   operand *src = env->lookup(name);
-  if (src) return deref_stack(*src, env);
-  // return *src;
-  else  // self type
+  if (src) {
+    return deref_stack(*src, env);
+  } else  // self type
   {
     operand self_loaded = deref_stack(*(env->lookup(self)), env);
     CgenNode::Attr *attr = env->get_class()->get_attr(name);
