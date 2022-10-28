@@ -1030,15 +1030,16 @@ void method_class::code(CgenEnvironment *env) {
   operand self_op({env->get_class()->get_type_name(), 1}, "self");
 
   std::vector<operand> args{self_op};
-  operand* self_stack = new operand {self_op.get_type().get_ptr_type(), "self_ptr"};
+  operand *self_stack =
+      new operand{self_op.get_type().get_ptr_type(), "self_ptr"};
   env->add_local(self, *self_stack);  // add self
 
   for (auto formal : formals) {
     op_type arg_ty =
         sym_as_type_passable(formal->get_type_decl(), env->get_class());
     operand arg(arg_ty, formal->get_name()->get_string());
-    operand* arg_stack = new operand{arg_ty.get_ptr_type(),
-                         string(arg.get_name()).substr(1) + "_ptr"};
+    operand *arg_stack = new operand{arg_ty.get_ptr_type(),
+                                     string(arg.get_name()).substr(1) + "_ptr"};
     env->add_local(formal->get_name(), *arg_stack);
     args.push_back(arg);
   }
@@ -1118,7 +1119,10 @@ operand cond_class::code(CgenEnvironment *env) {
          done_label = env->new_label("end_if", 0);
 
   operand pr_val = pred->code(env);
-  op_type ret_ty = sym_as_type(this->get_type(), env);
+  // op_type ret_ty = sym_as_type(this->get_type(), env); //TODO ret ty wrong
+  std::swap(null_stream, env->cur_stream);  // disable output for now
+  op_type ret_ty = then_exp->code(env).get_type();
+  std::swap(null_stream, env->cur_stream);  // enable again
 
   operand dst = vp.alloca_mem(ret_ty);
   vp.branch_cond(pr_val, true_label, false_label);
@@ -1185,7 +1189,8 @@ operand let_class::code(CgenEnvironment *env) {
 
   operand val = init->code(env);
   // operand dst_reg(ty, identifier->get_string());
-  operand dst_stack = vp.alloca_mem(ty);
+  operand &dst_stack = *(new operand{});
+  dst_stack = vp.alloca_mem(ty);
   env->add_local(identifier, dst_stack);
 
   if (val.is_empty()) {  // fill in default value if not specified
@@ -1254,7 +1259,14 @@ operand eq_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "eq" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
   // MORE MEANINGFUL
-  return nvp().icmp(EQ, e1->code(env), e2->code(env));
+  vp_init;
+  operand e1o = e1->code(env);
+  operand e2o = e2->code(env);
+  if (!e1o.get_type().is_same_with(e2o.get_type())) {
+    e1o = conform(e1o, {INT8_PTR}, env);
+    e2o = conform(e2o, {INT8_PTR}, env);
+  }
+  return vp.icmp(EQ, e1o, e2o);
 }
 
 operand leq_class::code(CgenEnvironment *env) {
