@@ -8,6 +8,10 @@ class Main inherits IO
    io : IO;
    str1 : String <- "aaa";
    str2 : String;
+   	test(a1:Int) : Object {{
+		--x <-20;
+		self;
+	}};
    main() : Object {{
 		out_string("\nattribute dynamic dispatch:\n");
 		x<-7656; 
@@ -20,11 +24,8 @@ class Main inherits IO
 		self@IO.out_int(197);
 		self;
 	}};
-	(*
-	test() : Object {{
-		--x <-20;
-		self;
-	}};*)
+	
+
 };
 (*
 class Test inherits Main{
