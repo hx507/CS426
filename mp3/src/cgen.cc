@@ -8,6 +8,8 @@
 #include <alloca.h>
 #include <strings.h>
 
+#include <ostream>
+
 #include "operand.h"
 #define EXTERN
 #include <sstream>
@@ -819,6 +821,9 @@ void CgenNode::code_class() {
       operand dst_addr =
           vp.getelementptr(self_type, new_ptr, int_value(0), int_value(i),
                            attr.type.get_ptr_type());
+
+      // init_val = vp.bitcast(init_val, attr.type);
+      init_val = conform(init_val, attr.type, &env);
       vp.store(init_val, dst_addr);
       i++;
     }
@@ -1073,6 +1078,8 @@ void method_class::code(CgenEnvironment *env) {
   // derefence basic types on return
   ret_op = conform(ret_op,
                    return_type_boxed(sym_as_type(get_return_type(), env)), env);
+  ret_op = conform(ret_op,
+                   return_type_boxed(sym_as_type(get_return_type(), env)), env);
 
   vp.ret(ret_op);
 
@@ -1121,6 +1128,7 @@ operand assign_class::code(CgenEnvironment *env) {
   return val;
 }
 
+
 operand cond_class::code(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "cond" << endl;
   // ADD CODE HERE AND REPLACE "return operand()" WITH SOMETHING
@@ -1132,9 +1140,13 @@ operand cond_class::code(CgenEnvironment *env) {
 
   operand pr_val = pred->code(env);
   // op_type ret_ty = sym_as_type(this->get_type(), env); //TODO ret ty wrong
-  std::swap(null_stream, env->cur_stream);  // disable output for now
+  // swap(null_stream, env->cur_stream);  // disable output for now
+  auto good_stream = env->cur_stream;
+  env->cur_stream = null_stream;
   op_type ret_ty = then_exp->code(env).get_type();
-  std::swap(null_stream, env->cur_stream);  // enable again
+  *env->cur_stream << "aaaaaaaaaaaaaaa\n";
+  env->cur_stream = good_stream;
+  // swap(null_stream, env->cur_stream);  // enable again
 
   operand dst = vp.alloca_mem(ret_ty);
   vp.branch_cond(pr_val, true_label, false_label);
@@ -1163,9 +1175,11 @@ operand loop_class::code(CgenEnvironment *env) {
   string body_label = env->new_label("loop_body", 1),
          done_label = env->new_label("loop_done", 0);
 
-  std::swap(null_stream, env->cur_stream);  // disable output for now
+  auto good_stream = env->cur_stream;
+  env->cur_stream = null_stream;
   op_type ret_ty = body->code(env).get_type();
-  std::swap(null_stream, env->cur_stream);  // enable again
+  *env->cur_stream << "aaaaaaaaaaaaaaa\n";
+  env->cur_stream = good_stream;
 
   operand dst = vp.alloca_mem(ret_ty);
   vp.branch_uncond(body_label);
@@ -1389,10 +1403,9 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
     actual_args[i] = conform(actual_args[i], to_call->arg_types[i], env);
   }
 
-  return vp.call(to_call->arg_types, to_call->ret_ty,
-                 self_cls->get_type_name() + "_" +
-                     to_call->method->get_name()->get_string(),
-                 true, actual_args);
+  string resolved_func_name = to_call->func_val.get_name().substr(1);
+  return vp.call(to_call->arg_types, to_call->ret_ty, resolved_func_name, true,
+                 actual_args);
 #endif
   return operand();
 }
