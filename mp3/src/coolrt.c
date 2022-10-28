@@ -240,9 +240,12 @@ String *String_concat(String *src1, String *src2) {
 }
 String *String_substr(String *src, int i1, int i2) {
   String *newstr = String_new();
-  if (String_length(src) <= i1 + i2) {
+  int length = String_length(src);
+  if (length < i1 + i2) {
     fprintf(stderr, "At %s(line %d): substring index oob\n", __FILE__,
             __LINE__);
+    fprintf(stderr, "Len: %d, i1: %d, i2: %d\n", length, i1, i2);
+    fprintf(stderr, "string: %s\n", src->val);
     abort();
   }
   newstr->val = (char *)calloc(String_length(src), 1);

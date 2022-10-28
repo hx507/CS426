@@ -1448,7 +1448,7 @@ operand new__class::code(CgenEnvironment *env) {
   // MORE MEANINGFUL
   vp_init;
   if (get_type() == SELF_TYPE) {
-    // TODO
+    // TODO new SELF_TYPE
   } else {
     CgenNode *cls = env->type_to_class(type_name);
     op_type ret_ty{cls->get_type_name(), 1};
