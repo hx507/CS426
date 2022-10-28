@@ -179,8 +179,8 @@ void CgenClassTable::setup_external_functions() {
 
   vp.declare({"Bool*"}, "Bool_new", {{}});
 
-  vp.declare({"Bool*"}, "create_Bool", {{"Bool*"}, {INT1}});
-  vp.declare({"Int*"}, "create_Int", {{"Int*"}, {INT32}});
+  vp.declare({"Bool*"}, "create_Bool", {{INT1}});
+  vp.declare({"Int*"}, "create_Int", {{INT32}});
 
 #endif
 }
@@ -950,21 +950,21 @@ operand conform(operand src, op_type type, CgenEnvironment *env) {
 
   // Unbox
   if (src_type.is_ptr() && src_type.is_int_object()) {
-    operand ptr = vp.getelementptr(src_type.get_deref_type(), int_value(0),
+    operand ptr = vp.getelementptr(src_type.get_deref_type(), src, int_value(0),
                                    int_value(1), {INT32_PTR});
     return vp.load({INT32}, ptr);
   }
-  if (src_type.is_ptr() && src_type.is_int_object()) {
-    operand ptr = vp.getelementptr(src_type.get_deref_type(), int_value(0),
+  if (src_type.is_ptr() && src_type.is_bool_object()) {
+    operand ptr = vp.getelementptr(src_type.get_deref_type(), src, int_value(0),
                                    int_value(1), {INT1_PTR});
     return vp.load({INT1}, ptr);
   }
 
   // Box
-  if (src_type.is_int_object()) {
+  if (!src_type.is_ptr() && src_type.get_id() == INT32) {
     return vp.call({{INT32}}, {"Int", 1}, "create_Int", true, {src});
   }
-  if (src_type.is_int_object()) {
+  if (!src_type.is_ptr() && src_type.get_id() == INT1) {
     return vp.call({{INT1}}, {"Bool", 1}, "create_Bool", true, {src});
   }
 
@@ -1389,9 +1389,9 @@ operand dispatch_class::code(CgenEnvironment *env) {
   vp_init;
   operand self_val = expr->code(env);
 
-  if (self_val.get_type().get_id() == INT32)
+  if (self_val.get_type().get_id() == INT32) {
     self_val = conform(self_val, {"Int", 1}, env);
-  else if (self_val.get_type().get_id() == INT1)
+  } else if (self_val.get_type().get_id() == INT1)
     self_val = conform(self_val, {"Bool", 1}, env);
 
   op_type self_ty = self_val.get_type();
@@ -1407,8 +1407,8 @@ operand dispatch_class::code(CgenEnvironment *env) {
   CgenNode *self_cls = env->op_type_to_class(self_ty);
 
   CgenNode::Method *to_call = self_cls->get_method(name);
-  // TODO find the right vtable function, call it
 
+  // find the right vtable function, call it
   operand vtb_ptr = load_vtable_ptr(self_val, self_cls, env);
   operand func_ptr = vp.getelementptr(
       self_cls->vtable_ptr_ty.get_deref_type(), vtb_ptr, int_value(0),
@@ -1423,6 +1423,11 @@ operand dispatch_class::code(CgenEnvironment *env) {
   operand ret{to_call->ret_ty, env->new_name()};
   vp.call(o, to_call->arg_types, func_to_call.get_name().substr(1), false,
           actual_args, ret);
+
+  if (str_eq(name->get_string(), "copy")) {  // special case for object copy
+    ret = vp.bitcast(ret, self_ty);
+  }
+
   return ret;
 #endif
   return operand();
