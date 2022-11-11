@@ -153,7 +153,11 @@ declare %Int* @create_Int(i32)
 
 @str.Main = internal constant [5 x i8] c"Main\00"
 %Main = type {
-	%_Main_vtable*
+	%_Main_vtable*,
+	%A*,
+	%A*,
+	%A*,
+	%B*
 }
 
 %_Main_vtable = type {
@@ -167,7 +171,7 @@ declare %Int* @create_Int(i32)
 	%IO* (%IO*,i32) *,
 	%String* (%IO*) *,
 	i32 (%IO*) *,
-	%Object* (%Main*) *
+	%Main* (%Main*) *
 }
 
 @_Main_vtable_prototype = constant %_Main_vtable {
@@ -181,209 +185,90 @@ declare %Int* @create_Int(i32)
 	%IO* (%IO*,i32) * @IO_out_int,
 	%String* (%IO*) * @IO_in_string,
 	i32 (%IO*) * @IO_in_int,
-	%Object* (%Main*) * @Main_main
+	%Main* (%Main*) * @Main_main
 }
 
-@str.Foo = internal constant [4 x i8] c"Foo\00"
-%Foo = type {
-	%_Foo_vtable*
+@str.A = internal constant [2 x i8] c"A\00"
+%A = type {
+	%_A_vtable*,
+	i32
 }
 
-%_Foo_vtable = type {
+%_A_vtable = type {
 	i32,
 	i32,
 	i8*,
 	%Object* (%Object*) *,
 	%String* (%Object*) *,
-	%Object* (%Object*) *,
-	%Foo* (%Foo*) *
+	%Object* (%Object*) *
 }
 
-@_Foo_vtable_prototype = constant %_Foo_vtable {
+@_A_vtable_prototype = constant %_A_vtable {
 	i32 6,
-	i32 ptrtoint (%Foo* getelementptr (%Foo, %Foo* null, i32 1) to i32),
-	i8* getelementptr ([4 x i8], [4 x i8]* @str.Foo, i32 0, i32 0),
+	i32 ptrtoint (%A* getelementptr (%A, %A* null, i32 1) to i32),
+	i8* getelementptr ([2 x i8], [2 x i8]* @str.A, i32 0, i32 0),
 	%Object* (%Object*) * @Object_abort,
 	%String* (%Object*) * @Object_type_name,
-	%Object* (%Object*) * @Object_copy,
-	%Foo* (%Foo*) * @Foo_a
+	%Object* (%Object*) * @Object_copy
 }
 
-@str.Bar = internal constant [4 x i8] c"Bar\00"
-%Bar = type {
-	%_Bar_vtable*
+@str.B = internal constant [2 x i8] c"B\00"
+%B = type {
+	%_B_vtable*,
+	i32
 }
 
-%_Bar_vtable = type {
+%_B_vtable = type {
 	i32,
 	i32,
 	i8*,
 	%Object* (%Object*) *,
 	%String* (%Object*) *,
-	%Object* (%Object*) *,
-	%Bar* (%Bar*) *,
-	i32 (%Bar*,i32) *
+	%Object* (%Object*) *
 }
 
-@_Bar_vtable_prototype = constant %_Bar_vtable {
+@_B_vtable_prototype = constant %_B_vtable {
 	i32 7,
-	i32 ptrtoint (%Bar* getelementptr (%Bar, %Bar* null, i32 1) to i32),
-	i8* getelementptr ([4 x i8], [4 x i8]* @str.Bar, i32 0, i32 0),
+	i32 ptrtoint (%B* getelementptr (%B, %B* null, i32 1) to i32),
+	i8* getelementptr ([2 x i8], [2 x i8]* @str.B, i32 0, i32 0),
 	%Object* (%Object*) * @Object_abort,
 	%String* (%Object*) * @Object_type_name,
-	%Object* (%Object*) * @Object_copy,
-	%Bar* (%Bar*) * @Bar_a,
-	i32 (%Bar*,i32) * @Bar_b
+	%Object* (%Object*) * @Object_copy
 }
 
-@str.1 = internal constant [14 x i8] c"<basic class>\00"
+@str.3 = internal constant [14 x i8] c"<basic class>\00"
+@String.3 = constant %String {
+	%_String_vtable* @_String_vtable_prototype,
+	i8* getelementptr ([14 x i8], [14 x i8]* @str.3, i32 0, i32 0)
+}
+
+@str.2 = internal constant [5 x i8] c"ok!\0A\00"
+@String.2 = constant %String {
+	%_String_vtable* @_String_vtable_prototype,
+	i8* getelementptr ([5 x i8], [5 x i8]* @str.2, i32 0, i32 0)
+}
+
+@str.1 = internal constant [9 x i8] c"not ok!\0A\00"
 @String.1 = constant %String {
 	%_String_vtable* @_String_vtable_prototype,
-	i8* getelementptr ([14 x i8], [14 x i8]* @str.1, i32 0, i32 0)
+	i8* getelementptr ([9 x i8], [9 x i8]* @str.1, i32 0, i32 0)
 }
 
-@str.0 = internal constant [15 x i8] c"dispatch7_o.cl\00"
+@str.0 = internal constant [12 x i8] c"equal4_o.cl\00"
 @String.0 = constant %String {
 	%_String_vtable* @_String_vtable_prototype,
-	i8* getelementptr ([15 x i8], [15 x i8]* @str.0, i32 0, i32 0)
+	i8* getelementptr ([12 x i8], [12 x i8]* @str.0, i32 0, i32 0)
 }
 
 define i32 @main() {
 
 entry:
 	%vtpm.0 = call %Main*( ) @Main_new(  )
-	%vtpm.1 = call %Object*(%Main* ) @Main_main( %Main* %vtpm.0 )
+	%vtpm.1 = call %Main*(%Main* ) @Main_main( %Main* %vtpm.0 )
 	ret i32 0
 }
 
-define %Object* @Main_main(%Main* %self) {
+define %Main* @Main_main(%Main* %self) {
 	%self_ptr = alloca %Main*
 	store %Main* %self, %Main** %self_ptr
-	%vtpm.2 = load %Main*, %Main** %self_ptr
-	%vtpm.3 = call %Bar* @Bar_new(  )
-	%vtpm.4 = icmp eq %Bar* %vtpm.3, null
-	br i1 %vtpm.4, label %abort, label %ok.0
-
-ok.0:
-	%vtpm.5 = bitcast %Bar* %vtpm.3 to %Foo*
-	%vtpm.6 = call %Foo*(%Foo* ) @Foo_a( %Foo* %vtpm.5 )
-	%vtpm.7 = bitcast %Foo* %vtpm.6 to %Bar*
-	%vtpm.8 = getelementptr %Bar, %Bar* %vtpm.7, i32 0, i32 0
-	%vtpm.9 = load %_Bar_vtable*, %_Bar_vtable** %vtpm.8
-	%vtpm.10 = getelementptr %_Bar_vtable, %_Bar_vtable* %vtpm.9, i32 0, i32 7
-	%tmp.0 = load i32 (%Bar*,i32) *, i32 (%Bar*,i32) ** %vtpm.10
-	%tmp.1 = call i32(%Bar*, i32 ) %tmp.0( %Bar* %vtpm.7, i32 1 )
-	%vtpm.11 = getelementptr %Main, %Main* %vtpm.2, i32 0, i32 0
-	%vtpm.12 = load %_Main_vtable*, %_Main_vtable** %vtpm.11
-	%vtpm.13 = getelementptr %_Main_vtable, %_Main_vtable* %vtpm.12, i32 0, i32 7
-	%tmp.2 = load %IO* (%IO*,i32) *, %IO* (%IO*,i32) ** %vtpm.13
-	%vtpm.14 = bitcast %Main* %vtpm.2 to %IO*
-	%tmp.3 = call %IO*(%IO*, i32 ) %tmp.2( %IO* %vtpm.14, i32 %tmp.1 )
-	%vtpm.15 = bitcast %IO* %tmp.3 to %Object*
-	ret %Object* %vtpm.15
-
-abort:
-	call void @abort(  )
-	unreachable
-}
-
-define %Main* @Main_new() {
-
-entry:
-	%vtpm.17 = getelementptr %_Main_vtable, %_Main_vtable* @_Main_vtable_prototype, i32 0, i32 1
-	%vtpm.18 = load i32, i32* %vtpm.17
-	%vtpm.19 = call i8* @malloc(i32 %vtpm.18)
-	%vtpm.20 = bitcast i8* %vtpm.19 to %Main*
-	%vtpm.21 = icmp eq %Main* %vtpm.20, null
-	br i1 %vtpm.21, label %abort, label %ok.1
-
-ok.1:
-	%self_ptr = alloca %Main*
-	store %Main* %vtpm.20, %Main** %self_ptr
-	%vtpm.22 = getelementptr %Main, %Main* %vtpm.20, i32 0, i32 0
-	store %_Main_vtable* @_Main_vtable_prototype, %_Main_vtable** %vtpm.22
-	ret %Main* %vtpm.20
-
-abort:
-	call void @abort(  )
-	unreachable
-}
-
-define %Foo* @Foo_a(%Foo* %self) {
-	%self_ptr = alloca %Foo*
-	store %Foo* %self, %Foo** %self_ptr
-	%vtpm.24 = load %Foo*, %Foo** %self_ptr
-	ret %Foo* %vtpm.24
-
-abort:
-	call void @abort(  )
-	unreachable
-}
-
-define %Foo* @Foo_new() {
-
-entry:
-	%vtpm.26 = getelementptr %_Foo_vtable, %_Foo_vtable* @_Foo_vtable_prototype, i32 0, i32 1
-	%vtpm.27 = load i32, i32* %vtpm.26
-	%vtpm.28 = call i8* @malloc(i32 %vtpm.27)
-	%vtpm.29 = bitcast i8* %vtpm.28 to %Foo*
-	%vtpm.30 = icmp eq %Foo* %vtpm.29, null
-	br i1 %vtpm.30, label %abort, label %ok.0
-
-ok.0:
-	%self_ptr = alloca %Foo*
-	store %Foo* %vtpm.29, %Foo** %self_ptr
-	%vtpm.31 = getelementptr %Foo, %Foo* %vtpm.29, i32 0, i32 0
-	store %_Foo_vtable* @_Foo_vtable_prototype, %_Foo_vtable** %vtpm.31
-	ret %Foo* %vtpm.29
-
-abort:
-	call void @abort(  )
-	unreachable
-}
-
-define %Bar* @Bar_a(%Bar* %self) {
-	%self_ptr = alloca %Bar*
-	store %Bar* %self, %Bar** %self_ptr
-	%vtpm.33 = load %Bar*, %Bar** %self_ptr
-	ret %Bar* %vtpm.33
-
-abort:
-	call void @abort(  )
-	unreachable
-}
-
-define i32 @Bar_b(%Bar* %self, i32 %y) {
-	%self_ptr = alloca %Bar*
-	store %Bar* %self, %Bar** %self_ptr
-	%y_ptr = alloca i32
-	store i32 %y, i32* %y_ptr
-	ret i32 1
-
-abort:
-	call void @abort(  )
-	unreachable
-}
-
-define %Bar* @Bar_new() {
-
-entry:
-	%vtpm.36 = getelementptr %_Bar_vtable, %_Bar_vtable* @_Bar_vtable_prototype, i32 0, i32 1
-	%vtpm.37 = load i32, i32* %vtpm.36
-	%vtpm.38 = call i8* @malloc(i32 %vtpm.37)
-	%vtpm.39 = bitcast i8* %vtpm.38 to %Bar*
-	%vtpm.40 = icmp eq %Bar* %vtpm.39, null
-	br i1 %vtpm.40, label %abort, label %ok.0
-
-ok.0:
-	%self_ptr = alloca %Bar*
-	store %Bar* %vtpm.39, %Bar** %self_ptr
-	%vtpm.41 = getelementptr %Bar, %Bar* %vtpm.39, i32 0, i32 0
-	store %_Bar_vtable* @_Bar_vtable_prototype, %_Bar_vtable** %vtpm.41
-	ret %Bar* %vtpm.39
-
-abort:
-	call void @abort(  )
-	unreachable
-}
-
+	%vtpm.7 = alloca %IO*

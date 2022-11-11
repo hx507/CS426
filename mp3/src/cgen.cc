@@ -1406,12 +1406,12 @@ operand static_dispatch_class::code(CgenEnvironment *env) {
   string resolved_func_name = to_call->func_val.get_name().substr(1);
   auto ret = vp.call(to_call->arg_types, to_call->ret_ty, resolved_func_name,
                      true, actual_args);
-  //if (str_eq(env->op_type_to_class(self_val.get_type()) // special case
-                 //->get_parentnd()
-                 //->get_type_name()
-                 //.c_str(),
-             //self_cls->get_type_name().c_str())) {
-    //ret = vp.bitcast(ret, self_val.get_type());
+  // if (str_eq(env->op_type_to_class(self_val.get_type()) // special case
+  //->get_parentnd()
+  //->get_type_name()
+  //.c_str(),
+  // self_cls->get_type_name().c_str())) {
+  // ret = vp.bitcast(ret, self_val.get_type());
   //}
   return ret;
 #endif
@@ -1747,6 +1747,8 @@ void assign_class::make_alloca(CgenEnvironment *env) {
 
 void cond_class::make_alloca(CgenEnvironment *env) {
   if (cgen_debug) std::cerr << "cond" << endl;
+  vp_init;
+
   pred->make_alloca(env);
   then_exp->make_alloca(env);
   else_exp->make_alloca(env);
