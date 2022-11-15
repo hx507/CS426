@@ -110,14 +110,17 @@ class RegAllocSimple : public MachineFunctionPass {
     if (live_virt_regs.count(VirtReg))
       phys = live_virt_regs[VirtReg];
     else {
+      MO.dump();
       outs() << "\tNeed a new physical register!\n";
       bool found = false;
       const TargetRegisterClass *RC = MRI->getRegClass(VirtReg);
-      for (MCRegister mcr : RC->getRegisters()) {
-        if (MCRegister::isPhysicalRegister(mcr) &&
-            !has_value(live_virt_regs, mcr)) {
+      MachineBasicBlock *MBB = MO.getParent()->getParent();
+
+      for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
+        if (MCRegister::isPhysicalRegister(mcr) && !used_in_instr.count(mcr) &&
+            !has_value(live_virt_regs,
+                       mcr)) {  // TODO use MBB.liveins() instead
           phys = mcr;
-          live_virt_regs[VirtReg] = phys;
           found = true;
           break;
         }
@@ -128,26 +131,32 @@ class RegAllocSimple : public MachineFunctionPass {
       }
 
       if (is_use) {
-        // TODO loading
+        outs() << "\t Loaded from stack! \n";
+        int slot = allocateStackSlot(VirtReg);
+        TII->loadRegFromStackSlot(*MBB, MO.getParent(), phys, slot, RC, TRI);
       }
     }
 
     outs() << "\tAllocate operand: " << printRegUnit(VirtReg, TRI) << " -> "
            << printRegUnit(phys, TRI) << "\n";
 
+    live_virt_regs[VirtReg] = phys;
+
     used_in_instr.insert(phys);
     MO.setReg(phys);
+    // Killed regs are no longer live
+    if (MO.isKill()) live_virt_regs.erase(VirtReg);
   }
 
   void allocateInstruction(MachineInstr &MI) {
     // TODO: find and allocate all virtual registers in MI
     for (auto &OP : MI.operands())
       if (OP.isReg() && OP.getReg().isVirtual() && OP.isUse())
-        allocateOperand(OP, OP.getReg(), OP.isUse());
+        allocateOperand(OP, OP.getReg(), true);
 
     for (auto &OP : MI.operands())
       if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef())
-        allocateOperand(OP, OP.getReg(), OP.isUse());
+        allocateOperand(OP, OP.getReg(), false);
   }
 
   void allocateBasicBlock(MachineBasicBlock &MBB) {
@@ -164,16 +173,20 @@ class RegAllocSimple : public MachineFunctionPass {
       MI.dump();
       allocateInstruction(MI);
     }
-        
-    // TODO: spill all live registers at the end
 
+    // Spill all live registers at the end
+    if (!MBB.isReturnBlock())
+      for (auto [virt_live, phys_live] : live_virt_regs) {
+        const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
+        TII->storeRegToStackSlot(MBB, MBB.getFirstTerminator(), phys_live, true,
+                                 allocateStackSlot(virt_live), RC, TRI);
+      }
   }
 
   bool runOnMachineFunction(MachineFunction &MF) override {
     dbgs() << "simple regalloc running on: " << MF.getName() << "\n";
 
-    // outs() << "simple regalloc not implemented\n";
-    // abort();
+    MF.dump();
 
     // Get some useful information about the target
     MRI = &MF.getRegInfo();
