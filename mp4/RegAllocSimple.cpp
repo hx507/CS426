@@ -35,6 +35,15 @@ bool has_value(T &m, V value) {
                    [value](const auto &mo) { return mo.second == value; });
   return result != std::end(m);
 }
+template <class T, class V>
+void erase_map_value(T &m, V value) {
+  for (auto it = m.begin(); it != m.end();) {
+    if (value == (*it).second)
+      it = m.erase(it);
+    else
+      ++it;
+  }
+}
 
 /// This is class where you will implement your register allocator in
 class RegAllocSimple : public MachineFunctionPass {
@@ -118,8 +127,7 @@ class RegAllocSimple : public MachineFunctionPass {
 
       for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
         if (MCRegister::isPhysicalRegister(mcr) && !used_in_instr.count(mcr) &&
-            !has_value(live_virt_regs,
-                       mcr)) {  // TODO use MBB.liveins() instead
+            !has_value(live_virt_regs, mcr)) {
           phys = mcr;
           found = true;
           break;
@@ -134,16 +142,20 @@ class RegAllocSimple : public MachineFunctionPass {
         outs() << "\t Loaded from stack! \n";
         int slot = allocateStackSlot(VirtReg);
         TII->loadRegFromStackSlot(*MBB, MO.getParent(), phys, slot, RC, TRI);
+        NumLoads++;
       }
     }
 
     outs() << "\tAllocate operand: " << printRegUnit(VirtReg, TRI) << " -> "
-           << printRegUnit(phys, TRI) << "\n";
+           << printRegUnit(phys, TRI) << ", which is\n";
 
     live_virt_regs[VirtReg] = phys;
 
     used_in_instr.insert(phys);
+    MO.dump();
     MO.setReg(phys);
+    MO.dump();
+
     // Killed regs are no longer live
     if (MO.isKill()) live_virt_regs.erase(VirtReg);
   }
@@ -157,6 +169,14 @@ class RegAllocSimple : public MachineFunctionPass {
     for (auto &OP : MI.operands())
       if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef())
         allocateOperand(OP, OP.getReg(), false);
+
+    // Killed regs are no longer live
+    // for (auto &OP : MI.operands())
+    // if (OP.isReg() && OP.isKill()) {
+    // outs() << "\tKilled reg:";
+    // OP.dump();
+    // erase_map_value(live_virt_regs, OP.getReg());
+    //}
   }
 
   void allocateBasicBlock(MachineBasicBlock &MBB) {
@@ -180,6 +200,7 @@ class RegAllocSimple : public MachineFunctionPass {
         const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
         TII->storeRegToStackSlot(MBB, MBB.getFirstTerminator(), phys_live, true,
                                  allocateStackSlot(virt_live), RC, TRI);
+        NumStores++;
       }
   }
 
