@@ -63,8 +63,8 @@ class RegAllocSimple : public MachineFunctionPass {
   // TODO: maintain information about live registers
   // virtual register -> stack slot
   std::map<Register, int> spill_map = {};
-  // virtual register -> physical register
-  std::map<Register, Register> live_virt_regs = {};
+  // virtual register -> [physical register, virt subreg idx]
+  std::map<Register, std::pair<Register, int>> live_virt_regs = {};
 
   std::set<Register> used_in_instr = {};
 
@@ -101,23 +101,27 @@ class RegAllocSimple : public MachineFunctionPass {
   }
 
  private:
-  int allocateStackSlot(Register r) {
+  int allocateStackSlot(Register r, unsigned sub_idx) {
     if (spill_map.count(r)) return spill_map[r];
 
     const TargetRegisterClass *RC = MRI->getRegClass(r);
+    RC = TRI->getSubClassWithSubReg(RC, sub_idx);
     int s = MFI->CreateSpillStackObject(TRI->getSpillSize(*RC),
                                         TRI->getSpillAlign(*RC));
     spill_map[r] = s;
-    return allocateStackSlot(r);
+    outs() << "Slack slot for register of size: " << TRI->getSpillSize(*RC)
+           << "\n";
+    return allocateStackSlot(r, sub_idx);
   }
 
   /// Allocate physical register for virtual register operand
   void allocateOperand(MachineOperand &MO, Register VirtReg, bool is_use) {
     // TODO: allocate physical register for a virtual register
+    int sub_reg = MO.getSubReg();
     Register phys;
 
     if (live_virt_regs.count(VirtReg))
-      phys = live_virt_regs[VirtReg];
+      phys = live_virt_regs[VirtReg].first;
     else {
       MO.dump();
       outs() << "\tNeed a new physical register!\n";
@@ -126,10 +130,23 @@ class RegAllocSimple : public MachineFunctionPass {
       MachineBasicBlock *MBB = MO.getParent()->getParent();
 
       for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
+        bool mcr_live = false;
+        for (auto [virt_live, phys_info] : live_virt_regs) {
+          auto &&[phys_live, sub_idx] = phys_info;
+          // TODO: check for subreg
+          if (phys_live == mcr) mcr_live = true;
+          // This reg is already allocated to other op
+        }
+
         if (MCRegister::isPhysicalRegister(mcr) && !used_in_instr.count(mcr) &&
-            !has_value(live_virt_regs, mcr)) {
-          phys = mcr;
+            !mcr_live) {
           found = true;
+          phys = mcr;
+          if (sub_reg) {  // TODO prefer an allocated register with free
+                          // subreg
+            outs() << "\tSubreg index: " << sub_reg << "\n";
+            phys = TRI->getSubReg(phys, sub_reg);
+          }
           break;
         }
       }
@@ -140,7 +157,7 @@ class RegAllocSimple : public MachineFunctionPass {
 
       if (is_use) {
         outs() << "\t Loaded from stack! \n";
-        int slot = allocateStackSlot(VirtReg);
+        int slot = allocateStackSlot(VirtReg, sub_reg);
         TII->loadRegFromStackSlot(*MBB, MO.getParent(), phys, slot, RC, TRI);
         NumLoads++;
       }
@@ -149,11 +166,12 @@ class RegAllocSimple : public MachineFunctionPass {
     outs() << "\tAllocate operand: " << printRegUnit(VirtReg, TRI) << " -> "
            << printRegUnit(phys, TRI) << ", which is\n";
 
-    live_virt_regs[VirtReg] = phys;
+    live_virt_regs[VirtReg] = {phys, MO.getSubReg()};
 
     used_in_instr.insert(phys);
     MO.dump();
     MO.setReg(phys);
+    MO.setSubReg(0);
     MO.dump();
 
     // Killed regs are no longer live
@@ -196,10 +214,13 @@ class RegAllocSimple : public MachineFunctionPass {
 
     // Spill all live registers at the end
     if (!MBB.isReturnBlock())
-      for (auto [virt_live, phys_live] : live_virt_regs) {
+      for (auto [virt_live, phys_info] : live_virt_regs) {
+        auto &&[phys_live, sub_idx] = phys_info;
         const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
+        RC = TRI->getSubClassWithSubReg(RC, sub_idx);
         TII->storeRegToStackSlot(MBB, MBB.getFirstTerminator(), phys_live, true,
-                                 allocateStackSlot(virt_live), RC, TRI);
+                                 allocateStackSlot(virt_live, sub_idx), RC,
+                                 TRI);
         NumStores++;
       }
   }
