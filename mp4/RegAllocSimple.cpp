@@ -65,6 +65,7 @@ class RegAllocSimple : public MachineFunctionPass {
   std::map<Register, int> spill_map = {};
   // virtual register -> [physical register, virt subreg idx]
   std::map<Register, std::pair<Register, int>> live_virt_regs = {};
+  std::set<Register> block_existing_regs = {};
 
   std::set<Register> used_in_instr = {};
 
@@ -149,6 +150,10 @@ class RegAllocSimple : public MachineFunctionPass {
           // This reg is already allocated to in this inst
           if (regOverlap(inst_used, mcr)) mcr_live_elsewhere = true;
         }
+        for (auto inst_used : block_existing_regs) {
+          // This reg is already allocated to in this inst
+          if (regOverlap(inst_used, mcr)) mcr_live_elsewhere = true;
+        }
 
         if (!mcr_live_elsewhere) {
           found = true;
@@ -202,11 +207,20 @@ class RegAllocSimple : public MachineFunctionPass {
         allocateOperand(OP, OP.getReg(), false);
   }
 
+  void addBlockExistingReg(MachineInstr &MI) {
+    for (auto &OP : MI.operands())
+      if (OP.isReg() && OP.getReg().isPhysical())
+        block_existing_regs.insert(OP.getReg());
+  }
+
   void allocateBasicBlock(MachineBasicBlock &MBB) {
     // allocate each instruction
 
     live_virt_regs = {};
+    block_existing_regs = {};
     outs() << "===============================\n";
+
+    for (auto &MI : MBB) addBlockExistingReg(MI);
 
     for (auto &MI : MBB) {
       outs() << "-------------------------------\n";
