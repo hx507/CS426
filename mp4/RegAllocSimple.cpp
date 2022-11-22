@@ -66,6 +66,7 @@ class RegAllocSimple : public MachineFunctionPass {
   // virtual register -> [physical register, virt subreg idx]
   std::map<Register, std::pair<Register, int>> live_virt_regs = {};
   std::set<Register> block_existing_regs = {};
+  std::set<Register> block_mutated_regs = {};
 
   std::set<Register> used_in_instr = {};
 
@@ -201,13 +202,15 @@ class RegAllocSimple : public MachineFunctionPass {
         allocateOperand(OP, OP.getReg(), true);
 
     for (auto &OP : MI.operands())
-      if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef())
+      if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef()) {
+        block_mutated_regs.insert(OP.getReg());
         allocateOperand(OP, OP.getReg(), false);
+      }
 
-    std::set<Register> to_erase{};  // if have mask, spill clobbered regs
+    std::set<Register> to_erase{};  // for function calls, spill clobbered regs
     if (MI.isCall())
       for (auto &OP : MI.operands())
-        if (OP.isRegMask()) {
+        if (OP.isRegMask())
           for (auto [virt_live, phys_info] : live_virt_regs) {
             auto &&[phys_live, sub_idx] = phys_info;
             const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
@@ -219,7 +222,7 @@ class RegAllocSimple : public MachineFunctionPass {
               NumStores++;
             }
           }
-        }
+
     for (auto k : to_erase) live_virt_regs.erase(k);
   }
 
@@ -234,6 +237,7 @@ class RegAllocSimple : public MachineFunctionPass {
 
     live_virt_regs = {};
     block_existing_regs = {};
+    block_mutated_regs = {};
     outs() << "===============================\n";
 
     for (auto &MI : MBB) addBlockExistingReg(MI);
@@ -248,14 +252,17 @@ class RegAllocSimple : public MachineFunctionPass {
     }
 
     // Spill all live registers at the end
+    // TODO track dirty register and spill those only
     if (!MBB.isReturnBlock())
       for (auto [virt_live, phys_info] : live_virt_regs) {
         auto &&[phys_live, sub_idx] = phys_info;
         const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
         // RC = TRI->getSubClassWithSubReg(RC, sub_idx);
-        TII->storeRegToStackSlot(MBB, MBB.getFirstTerminator(), phys_live, true,
-                                 allocateStackSlot(virt_live), RC, TRI);
-        NumStores++;
+        if (block_mutated_regs.count(virt_live)) {
+          TII->storeRegToStackSlot(MBB, MBB.getFirstTerminator(), phys_live,
+                                   true, allocateStackSlot(virt_live), RC, TRI);
+          NumStores++;
+        }
       }
   }
 
