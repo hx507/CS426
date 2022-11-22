@@ -101,6 +101,14 @@ class RegAllocSimple : public MachineFunctionPass {
   }
 
  private:
+  bool regOverlap(Register r1, Register r2) {
+    for (MCRegUnitIterator r1u(r1, TRI); r1u.isValid(); ++r1u)
+      for (MCRegUnitIterator r2u(r2, TRI); r2u.isValid(); ++r2u)
+        if (*r1u == *r2u) return true;
+
+    return false;
+  }
+
   int allocateStackSlot(Register r, unsigned sub_idx) {
     if (spill_map.count(r)) return spill_map[r];
 
@@ -130,23 +138,22 @@ class RegAllocSimple : public MachineFunctionPass {
       MachineBasicBlock *MBB = MO.getParent()->getParent();
 
       for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
+        auto mcr_sub = TRI->getSubReg(mcr, sub_reg);
+
         bool mcr_live = false;
         for (auto [virt_live, phys_info] : live_virt_regs) {
           auto &&[phys_live, sub_idx] = phys_info;
-          // TODO: check for subreg
-          if (phys_live == mcr) mcr_live = true;
-          // This reg is already allocated to other op
+          auto phys_sub = TRI->getSubReg(phys_live, sub_reg);
+
+          if (!regOverlap(phys_sub, mcr_sub)) {
+            // This reg is already allocated to other op
+            mcr_live = true;
+          }
         }
 
-        if (MCRegister::isPhysicalRegister(mcr) && !used_in_instr.count(mcr) &&
-            !mcr_live) {
+        if (!used_in_instr.count(mcr) && !mcr_live) {
           found = true;
           phys = mcr;
-          if (sub_reg) {  // TODO prefer an allocated register with free
-                          // subreg
-            outs() << "\tSubreg index: " << sub_reg << "\n";
-            phys = TRI->getSubReg(phys, sub_reg);
-          }
           break;
         }
       }
@@ -166,10 +173,14 @@ class RegAllocSimple : public MachineFunctionPass {
     outs() << "\tAllocate operand: " << printRegUnit(VirtReg, TRI) << " -> "
            << printRegUnit(phys, TRI) << ", which is\n";
 
-    live_virt_regs[VirtReg] = {phys, MO.getSubReg()};
+    live_virt_regs[VirtReg] = {phys, sub_reg};
 
     used_in_instr.insert(phys);
     MO.dump();
+    if (sub_reg) {
+      outs() << "\tSubreg index: " << sub_reg << "\n";
+      phys = TRI->getSubReg(phys, sub_reg);
+    }
     MO.setReg(phys);
     MO.setSubReg(0);
     MO.dump();
@@ -187,14 +198,6 @@ class RegAllocSimple : public MachineFunctionPass {
     for (auto &OP : MI.operands())
       if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef())
         allocateOperand(OP, OP.getReg(), false);
-
-    // Killed regs are no longer live
-    // for (auto &OP : MI.operands())
-    // if (OP.isReg() && OP.isKill()) {
-    // outs() << "\tKilled reg:";
-    // OP.dump();
-    // erase_map_value(live_virt_regs, OP.getReg());
-    //}
   }
 
   void allocateBasicBlock(MachineBasicBlock &MBB) {
