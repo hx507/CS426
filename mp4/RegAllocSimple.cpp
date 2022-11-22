@@ -110,7 +110,7 @@ class RegAllocSimple : public MachineFunctionPass {
     return false;
   }
 
-  int allocateStackSlot(Register r, unsigned sub_idx) {
+  int allocateStackSlot(Register r) {
     if (spill_map.count(r)) return spill_map[r];
 
     const TargetRegisterClass *RC = MRI->getRegClass(r);
@@ -119,8 +119,8 @@ class RegAllocSimple : public MachineFunctionPass {
                                         TRI->getSpillAlign(*RC));
     spill_map[r] = s;
     outs() << "Slack slot for register of size: " << TRI->getSpillSize(*RC)
-           << "\n";
-    return allocateStackSlot(r, sub_idx);
+           << " at idx " << s << "\n";
+    return allocateStackSlot(r);
   }
 
   /// Allocate physical register for virtual register operand
@@ -169,9 +169,7 @@ class RegAllocSimple : public MachineFunctionPass {
 
       if (is_use) {
         outs() << "\t Loaded from stack! \n";
-        int slot = allocateStackSlot(VirtReg, sub_reg);
-        //Register partial = phys;
-        //if (sub_reg) partial = TRI->getSubReg(phys, sub_reg);
+        int slot = allocateStackSlot(VirtReg);
         TII->loadRegFromStackSlot(*MBB, MO.getParent(), phys, slot, RC, TRI);
         NumLoads++;
       }
@@ -216,8 +214,7 @@ class RegAllocSimple : public MachineFunctionPass {
             // RC = TRI->getSubClassWithSubReg(RC, sub_idx);
             if (OP.clobbersPhysReg(phys_live)) {
               TII->storeRegToStackSlot(*MI.getParent(), MI, phys_live, true,
-                                       allocateStackSlot(virt_live, sub_idx),
-                                       RC, TRI);
+                                       allocateStackSlot(virt_live), RC, TRI);
               to_erase.insert(virt_live);
               NumStores++;
             }
@@ -257,8 +254,7 @@ class RegAllocSimple : public MachineFunctionPass {
         const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
         // RC = TRI->getSubClassWithSubReg(RC, sub_idx);
         TII->storeRegToStackSlot(MBB, MBB.getFirstTerminator(), phys_live, true,
-                                 allocateStackSlot(virt_live, sub_idx), RC,
-                                 TRI);
+                                 allocateStackSlot(virt_live), RC, TRI);
         NumStores++;
       }
   }
@@ -278,6 +274,7 @@ class RegAllocSimple : public MachineFunctionPass {
     RegClassInfo.runOnMachineFunction(MF);
 
     // Allocate each basic block locally
+    spill_map = {};
     for (MachineBasicBlock &MBB : MF) {
       allocateBasicBlock(MBB);
     }
