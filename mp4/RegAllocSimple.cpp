@@ -151,7 +151,7 @@ class RegAllocSimple : public MachineFunctionPass {
           if (regOverlap(inst_used, mcr)) mcr_live_elsewhere = true;
         }
         for (auto inst_used : block_existing_regs) {
-          // This reg is already allocated to in this inst
+          // This reg is manually used in block
           if (regOverlap(inst_used, mcr)) mcr_live_elsewhere = true;
         }
 
@@ -170,9 +170,9 @@ class RegAllocSimple : public MachineFunctionPass {
       if (is_use) {
         outs() << "\t Loaded from stack! \n";
         int slot = allocateStackSlot(VirtReg, sub_reg);
-        Register partial = phys;
-        if (sub_reg) partial = TRI->getSubReg(phys, sub_reg);
-        TII->loadRegFromStackSlot(*MBB, MO.getParent(), partial, slot, RC, TRI);
+        //Register partial = phys;
+        //if (sub_reg) partial = TRI->getSubReg(phys, sub_reg);
+        TII->loadRegFromStackSlot(*MBB, MO.getParent(), phys, slot, RC, TRI);
         NumLoads++;
       }
     }
@@ -205,6 +205,25 @@ class RegAllocSimple : public MachineFunctionPass {
     for (auto &OP : MI.operands())
       if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef())
         allocateOperand(OP, OP.getReg(), false);
+
+    std::set<Register> to_erase{};  // if have mask, spill clobbered regs
+    if (MI.isCall())
+      for (auto &OP : MI.operands())
+        if (OP.isRegMask()) {
+          for (auto [virt_live, phys_info] : live_virt_regs) {
+            auto &&[phys_live, sub_idx] = phys_info;
+            const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
+            // RC = TRI->getSubClassWithSubReg(RC, sub_idx);
+            if (OP.clobbersPhysReg(phys_live)) {
+              TII->storeRegToStackSlot(*MI.getParent(), MI, phys_live, true,
+                                       allocateStackSlot(virt_live, sub_idx),
+                                       RC, TRI);
+              to_erase.insert(virt_live);
+              NumStores++;
+            }
+          }
+        }
+    for (auto k : to_erase) live_virt_regs.erase(k);
   }
 
   void addBlockExistingReg(MachineInstr &MI) {
