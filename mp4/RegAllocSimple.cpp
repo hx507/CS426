@@ -111,6 +111,22 @@ class RegAllocSimple : public MachineFunctionPass {
     return false;
   }
 
+  bool regIsKillApprox(MachineInstr &MI, Register v) {
+    MachineInstr *next = MI.getNextNode();
+    while (next) {
+      for (auto &OP : next->operands())
+        if (OP.isReg() && OP.getReg().isVirtual() && OP.isUse())
+          if (OP.getReg() == v) return false;
+
+      for (auto &OP : next->operands())
+        if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef())
+          if (OP.getReg() == v) return true;
+
+      next = next->getNextNode();
+    }
+    return false;  // conservative, do not know next block
+  }
+
   int allocateStackSlot(Register r) {
     if (spill_map.count(r)) return spill_map[r];
 
@@ -192,7 +208,8 @@ class RegAllocSimple : public MachineFunctionPass {
     outs() << "\n";
 
     // Killed regs are no longer live
-    if (MO.isKill()) live_virt_regs.erase(VirtReg);
+    if (MO.isKill() || MO.isDead() || regIsKillApprox(*MO.getParent(), VirtReg))
+      live_virt_regs.erase(VirtReg);
   }
 
   void allocateInstruction(MachineInstr &MI) {
@@ -211,23 +228,11 @@ class RegAllocSimple : public MachineFunctionPass {
     if (MI.isCall()) {
       outs() << "Spilling for function call! \n";
       std::set<Register> to_erase{};
-      unsigned ignore_next_virtual = -1;
-
-      if (MachineInstr *ni = MI.getNextNode())
-        if (MachineInstr *nni = ni->getNextNode())
-          for (auto &OP : nni->operands())
-            if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef()) {
-              ignore_next_virtual = OP.getReg();
-              outs() << "Ignore immediately destroyed reg "
-                     << printRegUnit(ignore_next_virtual, TRI) << "\n";
-            }
 
       for (auto &OP : MI.operands())
         if (OP.isRegMask())
           for (auto [virt_live, phys_info] : live_virt_regs) {
             auto &&[phys_live, sub_idx] = phys_info;
-            if (virt_live == ignore_next_virtual)
-              continue;  // don't spill if it's immediately overwritten
 
             outs() << "Spill " << printRegUnit(virt_live, TRI) << " -> "
                    << printRegUnit(phys_live, TRI) << "\n";
@@ -272,7 +277,7 @@ class RegAllocSimple : public MachineFunctionPass {
     }
 
     // Spill all live registers at the end
-    // TODO track dirty register and spill those only
+    // track dirty register in block_muted_regs and spill those only
     if (!MBB.isReturnBlock())
       for (auto [virt_live, phys_info] : live_virt_regs) {
         auto &&[phys_live, sub_idx] = phys_info;
