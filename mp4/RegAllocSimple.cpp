@@ -207,12 +207,31 @@ class RegAllocSimple : public MachineFunctionPass {
         allocateOperand(OP, OP.getReg(), false);
       }
 
-    std::set<Register> to_erase{};  // for function calls, spill clobbered regs
-    if (MI.isCall())
+    // for function calls, spill clobbered regs
+    if (MI.isCall()) {
+      outs() << "Spilling for function call! \n";
+      std::set<Register> to_erase{};
+      unsigned ignore_next_virtual = -1;
+
+      if (MachineInstr *ni = MI.getNextNode())
+        if (MachineInstr *nni = ni->getNextNode())
+          for (auto &OP : nni->operands())
+            if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef()) {
+              ignore_next_virtual = OP.getReg();
+              outs() << "Ignore immediately destroyed reg "
+                     << printRegUnit(ignore_next_virtual, TRI) << "\n";
+            }
+
       for (auto &OP : MI.operands())
         if (OP.isRegMask())
           for (auto [virt_live, phys_info] : live_virt_regs) {
             auto &&[phys_live, sub_idx] = phys_info;
+            if (virt_live == ignore_next_virtual)
+              continue;  // don't spill if it's immediately overwritten
+
+            outs() << "Spill " << printRegUnit(virt_live, TRI) << " -> "
+                   << printRegUnit(phys_live, TRI) << "\n";
+
             const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
             // RC = TRI->getSubClassWithSubReg(RC, sub_idx);
             if (OP.clobbersPhysReg(phys_live)) {
@@ -223,7 +242,8 @@ class RegAllocSimple : public MachineFunctionPass {
             }
           }
 
-    for (auto k : to_erase) live_virt_regs.erase(k);
+      for (auto k : to_erase) live_virt_regs.erase(k);
+    }
   }
 
   void addBlockExistingReg(MachineInstr &MI) {
