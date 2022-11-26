@@ -60,7 +60,7 @@ class RegAllocSimple : public MachineFunctionPass {
   const TargetInstrInfo *TII;
   RegisterClassInfo RegClassInfo;
 
-  // TODO: maintain information about live registers
+  // maintain information about live registers
   // virtual register -> stack slot
   std::map<Register, int> spill_map = {};
   // virtual register -> [physical register, virt subreg idx]
@@ -153,7 +153,11 @@ class RegAllocSimple : public MachineFunctionPass {
 
   /// Allocate physical register for virtual register operand
   void allocateOperand(MachineOperand &MO, Register VirtReg, bool is_use) {
+    const TargetRegisterClass *RC = MRI->getRegClass(VirtReg);
+    // if (sub_reg) RC = TRI->getSubClassWithSubReg(RC, sub_reg);
+    MachineBasicBlock *MBB = MO.getParent()->getParent();
     int sub_reg = MO.getSubReg();
+
     Register phys;
 
     MO.dump();
@@ -162,9 +166,6 @@ class RegAllocSimple : public MachineFunctionPass {
     else {
       outs() << "\tNeed a new physical register!\n";
       bool found = false;
-      const TargetRegisterClass *RC = MRI->getRegClass(VirtReg);
-      if (sub_reg) RC = TRI->getSubClassWithSubReg(RC, sub_reg);
-      MachineBasicBlock *MBB = MO.getParent()->getParent();
 
       for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
         bool mcr_live_elsewhere = false;
@@ -191,8 +192,26 @@ class RegAllocSimple : public MachineFunctionPass {
       }
 
       if (!found) {
-        // TODO spill some reg
-        outs() << "SPILL OTHER!!!!!\n";
+        // Spill some reg
+        // TODO test this
+        outs() << "No avail register found, SPILL OTHER!!!!!\n";
+        for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
+          Register to_erase = 0;
+
+          for (auto [virt_live, phys_info] : live_virt_regs) {
+            auto &&[phys_live, sub_idx] = phys_info;
+            if (phys_live == mcr) {
+              TII->storeRegToStackSlot(*MO.getParent()->getParent(),
+                                       MO.getParent(), phys_live, true,
+                                       allocateStackSlot(virt_live), RC, TRI);
+              to_erase = virt_live;
+              break;
+            }
+          }
+
+          live_virt_regs.erase(to_erase);
+          break;
+        }
       }
 
       if (is_use) {
@@ -249,7 +268,6 @@ class RegAllocSimple : public MachineFunctionPass {
                    << printRegUnit(phys_live, TRI) << "\n";
 
             const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
-            // RC = TRI->getSubClassWithSubReg(RC, sub_idx);
             if (OP.clobbersPhysReg(phys_live)) {
               TII->storeRegToStackSlot(*MI.getParent(), MI, phys_live, true,
                                        allocateStackSlot(virt_live), RC, TRI);
