@@ -120,10 +120,21 @@ class RegAllocSimple : public MachineFunctionPass {
 
       for (auto &OP : next->operands())
         if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef())
-          if (OP.getReg() == v) return true;
+          if (OP.getReg() == v) {
+            outs() << "Killed: \n";
+            MI.dump();
+            OP.dump();
+            outs() << "in \n";
+            next->dump();
+
+            return true;
+          }
 
       next = next->getNextNode();
     }
+
+    if (MI.getParent()->isReturnBlock()) return true;
+
     return false;  // conservative, do not know next block
   }
 
