@@ -198,6 +198,11 @@ class RegAllocSimple : public MachineFunctionPass {
         for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
           Register to_erase = 0;
 
+          for (auto inst_used : used_in_instr) {
+            // This reg is already allocated to in this inst
+            if (regOverlap(inst_used, mcr)) continue;
+          }
+
           for (auto [virt_live, phys_info] : live_virt_regs) {
             auto &&[phys_live, sub_idx] = phys_info;
             if (phys_live == mcr) {
