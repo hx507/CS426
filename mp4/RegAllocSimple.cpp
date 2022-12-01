@@ -111,7 +111,11 @@ class RegAllocSimple : public MachineFunctionPass {
     return false;
   }
 
-  bool regIsKillApprox(MachineInstr &MI, Register v) {
+  bool regIsKillApprox(MachineInstr &MI, Register v, Register p) {
+    for (auto &OP : MI.operands())
+      if (OP.isReg() && OP.isDef())  // used by self
+        if (OP.getReg() == v || OP.getReg() == p) return false;
+
     MachineInstr *next = MI.getNextNode();
     while (next) {
       for (auto &OP : next->operands())
@@ -243,11 +247,25 @@ class RegAllocSimple : public MachineFunctionPass {
     LLVM_DEBUG(dbgs() << "\n");
 
     // Killed regs are no longer live
-    if (MO.isKill() || MO.isDead() || regIsKillApprox(*MO.getParent(), VirtReg))
+    if (MO.isKill() || MO.isDead() ||
+        regIsKillApprox(*MO.getParent(), VirtReg, phys))
       live_virt_regs.erase(VirtReg);
   }
 
   void allocateInstruction(MachineInstr &MI) {
+    // Allocate virtual register tied to hard-coded physical registers first
+    //{
+    // int i = 0;
+    // for (auto &OP : MI.operands()) {
+    // if (OP.isReg() && OP.getReg().isVirtual() && OP.isTied()) {
+    // unsigned tied_idx = MI.findTiedOperandIdx(i);
+    // MachineOperand &tied = MI.getOperand(tied_idx);
+    // if (tied.getReg().isPhysical()) OP.setReg(tied.getReg());
+    //}
+    // i++;
+    //}
+    //}
+
     // find and allocate all virtual registers in MI
     for (auto &OP : MI.operands())
       if (OP.isReg() && OP.getReg().isVirtual() && OP.isUse())
