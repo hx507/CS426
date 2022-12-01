@@ -121,11 +121,11 @@ class RegAllocSimple : public MachineFunctionPass {
       for (auto &OP : next->operands())
         if (OP.isReg() && OP.getReg().isVirtual() && OP.isDef())
           if (OP.getReg() == v) {
-            outs() << "Killed: \n";
-            MI.dump();
-            OP.dump();
-            outs() << "in \n";
-            next->dump();
+            LLVM_DEBUG(dbgs() << "Killed: \n");
+            LLVM_DEBUG(MI.dump());
+            LLVM_DEBUG(OP.dump());
+            LLVM_DEBUG(dbgs() << "in \n");
+            LLVM_DEBUG(next->dump());
 
             return true;
           }
@@ -146,8 +146,8 @@ class RegAllocSimple : public MachineFunctionPass {
     int s = MFI->CreateSpillStackObject(TRI->getSpillSize(*RC),
                                         TRI->getSpillAlign(*RC));
     spill_map[r] = s;
-    outs() << "Slack slot for register of size: " << TRI->getSpillSize(*RC)
-           << " at idx " << s << "\n";
+    LLVM_DEBUG(dbgs() << "Slack slot for register of size: "
+                      << TRI->getSpillSize(*RC) << " at idx " << s << "\n");
     return allocateStackSlot(r);
   }
 
@@ -160,11 +160,11 @@ class RegAllocSimple : public MachineFunctionPass {
 
     Register phys;
 
-    MO.dump();
+    LLVM_DEBUG(MO.dump());
     if (live_virt_regs.count(VirtReg))
       phys = live_virt_regs[VirtReg].first;
     else {
-      outs() << "\tNeed a new physical register!\n";
+      LLVM_DEBUG(dbgs() << "\tNeed a new physical register!\n");
       bool found = false;
 
       for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
@@ -194,7 +194,7 @@ class RegAllocSimple : public MachineFunctionPass {
       if (!found) {
         // Spill some reg
         // TODO test this
-        outs() << "No avail register found, SPILL OTHER!!!!!\n";
+        LLVM_DEBUG(dbgs() << "No avail register found, SPILL OTHER!!!!!\n");
         for (MCRegister mcr : RegClassInfo.getOrder(RC)) {
           Register to_erase = 0;
 
@@ -220,27 +220,27 @@ class RegAllocSimple : public MachineFunctionPass {
       }
 
       if (is_use) {
-        outs() << "\t Loaded from stack! \n";
+        LLVM_DEBUG(dbgs() << "\t Loaded from stack! \n");
         int slot = allocateStackSlot(VirtReg);
         TII->loadRegFromStackSlot(*MBB, MO.getParent(), phys, slot, RC, TRI);
         NumLoads++;
       }
     }
 
-    outs() << "\tAllocate operand: " << printRegUnit(VirtReg, TRI) << " -> "
-           << printRegUnit(phys, TRI) << ", which is\n";
+    LLVM_DEBUG(dbgs() << "\tAllocate operand: " << printRegUnit(VirtReg, TRI)
+                      << " -> " << printRegUnit(phys, TRI) << ", which is\n");
 
     live_virt_regs[VirtReg] = {phys, sub_reg};
 
     if (sub_reg) {
-      outs() << "\tSubreg index: " << sub_reg << "\n";
+      LLVM_DEBUG(dbgs() << "\tSubreg index: " << sub_reg << "\n");
       phys = TRI->getSubReg(phys, sub_reg);
     }
     used_in_instr.insert(phys);
     MO.setReg(phys);
     MO.setSubReg(0);
-    MO.dump();
-    outs() << "\n";
+    LLVM_DEBUG(MO.dump());
+    LLVM_DEBUG(dbgs() << "\n");
 
     // Killed regs are no longer live
     if (MO.isKill() || MO.isDead() || regIsKillApprox(*MO.getParent(), VirtReg))
@@ -261,7 +261,7 @@ class RegAllocSimple : public MachineFunctionPass {
 
     // for function calls, spill clobbered regs
     if (MI.isCall()) {
-      outs() << "Spilling for function call! \n";
+      LLVM_DEBUG(dbgs() << "Spilling for function call! \n");
       std::set<Register> to_erase{};
 
       for (auto &OP : MI.operands())
@@ -269,8 +269,9 @@ class RegAllocSimple : public MachineFunctionPass {
           for (auto [virt_live, phys_info] : live_virt_regs) {
             auto &&[phys_live, sub_idx] = phys_info;
 
-            outs() << "Spill " << printRegUnit(virt_live, TRI) << " -> "
-                   << printRegUnit(phys_live, TRI) << "\n";
+            LLVM_DEBUG(dbgs()
+                       << "Spill " << printRegUnit(virt_live, TRI) << " -> "
+                       << printRegUnit(phys_live, TRI) << "\n");
 
             const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
             if (OP.clobbersPhysReg(phys_live)) {
@@ -297,16 +298,16 @@ class RegAllocSimple : public MachineFunctionPass {
     live_virt_regs = {};
     block_existing_regs = {};
     block_mutated_regs = {};
-    outs() << "===============================\n";
+    LLVM_DEBUG(dbgs() << "===============================\n");
 
     for (auto &MI : MBB) addBlockExistingReg(MI);
 
     for (auto &MI : MBB) {
-      outs() << "-------------------------------\n";
+      LLVM_DEBUG(dbgs() << "-------------------------------\n");
       used_in_instr = {};
 
-      outs() << "Handle machine inst:\n";
-      MI.dump();
+      LLVM_DEBUG(dbgs() << "Handle machine inst:\n");
+      LLVM_DEBUG(MI.dump());
       allocateInstruction(MI);
     }
 
@@ -326,9 +327,10 @@ class RegAllocSimple : public MachineFunctionPass {
   }
 
   bool runOnMachineFunction(MachineFunction &MF) override {
-    dbgs() << "simple regalloc running on: " << MF.getName() << "\n";
+    LLVM_DEBUG(dbgs() << "simple regalloc running on: " << MF.getName()
+                      << "\n");
 
-    MF.dump();
+    LLVM_DEBUG(MF.dump());
 
     // Get some useful information about the target
     MRI = &MF.getRegInfo();
@@ -357,8 +359,8 @@ class RegAllocSimple : public MachineFunctionPass {
     LI.releaseMemory();
     LI.runOnMachineFunction(MF);
 
-    outs() << "========================= simple regalloc done! "
-              "=========================\n";
+    LLVM_DEBUG(dbgs() << "========================= simple regalloc done! "
+                         "=========================\n");
     return true;
   }
 };
