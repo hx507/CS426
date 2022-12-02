@@ -7,14 +7,24 @@ e:                                      # @e
 # %bb.0:
 	movl	%esi, %ecx
 	movq	%rdi, %rdx
-	movl	(%rdx), %r8d
-	leal	(%rcx,%r8), %r9d
-	addl	%ecx, %r9d
-	setb	%r10b
-	addl	%r8d, %ecx
-	movl	%r9d, (%rdx)
-	adcb	$0, %r10b
-	movl	%r10d, %eax
+	movq	%rdx, %r8
+	movl	%ecx, %edx
+	movl	%edx, %ecx
+	addl	(%r8), %ecx
+	cmpl	%edx, %ecx
+	setb	%r9b
+	movb	%r9b, %r10b
+	andb	$1, %r10b
+	movl	%ecx, %r9d
+	addl	%edx, %r9d
+	movl	%r9d, (%r8)
+	cmpl	%edx, %r9d
+	setb	%cl
+	movb	%cl, %dl
+	andb	$1, %dl
+	movb	%dl, %cl
+	addb	%r10b, %cl
+	movb	%cl, %al
 	retq
 .Lfunc_end0:
 	.size	e, .Lfunc_end0-e
@@ -28,9 +38,12 @@ main:                                   # @main
 	pushq	%rax
 	.cfi_def_cfa_offset 16
 	leaq	4(%rsp), %rcx
+	movl	$21, %edx
 	movq	%rcx, %rdi
-	movl	$21, %esi
+	movl	%edx, %esi
 	callq	e@PLT
+	movb	%al, %cl
+	movb	%cl, %al
 	popq	%rcx
 	.cfi_def_cfa_offset 8
 	retq

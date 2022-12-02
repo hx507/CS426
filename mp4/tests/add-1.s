@@ -6,7 +6,8 @@
 test1:                                  # @test1
 # %bb.0:                                # %entry
 	movl	%edi, %ecx
-	leal	128(%rcx), %edx
+	movl	%ecx, %edx
+	addl	$128, %edx
 	movl	%edx, %eax
 	retq
 .Lfunc_end0:
@@ -20,8 +21,11 @@ main:                                   # @main
 # %bb.0:
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	movl	$123, %edi
+	movl	$123, %ecx
+	movl	%ecx, %edi
 	callq	test1@PLT
+	movl	%eax, %ecx
+	movl	%ecx, %eax
 	popq	%rcx
 	.cfi_def_cfa_offset 8
 	retq

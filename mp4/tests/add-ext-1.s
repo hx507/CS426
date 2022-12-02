@@ -7,9 +7,13 @@ add_nsw_consts:                         # @add_nsw_consts
 	.cfi_startproc
 # %bb.0:
 	movl	%edi, %ecx
+	movl	%ecx, %edx
+	movl	%edx, %ecx
+	addl	$5, %ecx
 	movslq	%ecx, %rdx
-	addq	$12, %rdx
-	movq	%rdx, %rax
+	movq	%rdx, %rcx
+	addq	$7, %rcx
+	movq	%rcx, %rax
 	retq
 .Lfunc_end0:
 	.size	add_nsw_consts, .Lfunc_end0-add_nsw_consts
@@ -23,8 +27,11 @@ main:                                   # @main
 # %bb.0:
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	xorl	%edi, %edi
+	xorl	%ecx, %ecx
+	movl	%ecx, %edi
 	callq	add_nsw_consts@PLT
+	movq	%rax, %rcx
+	movq	%rcx, %rax
 	popq	%rcx
 	.cfi_def_cfa_offset 8
 	retq

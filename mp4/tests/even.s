@@ -6,43 +6,55 @@
 even:                                   # @even
 	.cfi_startproc
 # %bb.0:                                # %entry
-	pushq	%rax
-	.cfi_def_cfa_offset 16
+	subq	$24, %rsp
+	.cfi_def_cfa_offset 32
 	movl	%edi, %eax
-	testl	%eax, %eax
-	movl	%eax, (%rsp)                    # 4-byte Spill
-	je	.LBB0_5
-# %bb.1:                                # %nonzero
-	jle	.LBB0_4
-# %bb.2:                                # %positive
-	movl	(%rsp), %ecx                    # 4-byte Reload
-	decl	%ecx
-	movl	%ecx, %edi
-	movl	%ecx, (%rsp)                    # 4-byte Spill
-	callq	even@PLT
 	movl	%eax, %ecx
+	cmpl	$0, %ecx
+	movl	%eax, 20(%rsp)                  # 4-byte Spill
+	movl	%ecx, 16(%rsp)                  # 4-byte Spill
+	je	.LBB0_4
+# %bb.1:                                # %nonzero
+	movl	16(%rsp), %eax                  # 4-byte Reload
+	cmpl	$0, %eax
+	jle	.LBB0_3
+# %bb.2:                                # %positive
+	movl	16(%rsp), %ecx                  # 4-byte Reload
+	movl	%ecx, %edx
+	subl	$1, %edx
+	movl	%edx, %edi
+	movl	%ecx, 16(%rsp)                  # 4-byte Spill
+	movl	%edx, 12(%rsp)                  # 4-byte Spill
+	callq	even@PLT
+	movb	%al, %cl
 	testb	$1, %cl
-	movb	%cl, 7(%rsp)                    # 1-byte Spill
-	je	.LBB0_5
-.LBB0_3:                                # %false
-	xorl	%eax, %eax
-	popq	%rcx
+	movb	%cl, 11(%rsp)                   # 1-byte Spill
+	jne	.LBB0_5
+	jmp	.LBB0_4
+.LBB0_3:                                # %negative
+	movl	16(%rsp), %ecx                  # 4-byte Reload
+	movl	%ecx, %edx
+	addl	$1, %edx
+	movl	%edx, %edi
+	movl	%ecx, 16(%rsp)                  # 4-byte Spill
+	movl	%edx, 4(%rsp)                   # 4-byte Spill
+	callq	even@PLT
+	movb	%al, %cl
+	testb	$1, %cl
+	movb	%cl, 3(%rsp)                    # 1-byte Spill
+	jne	.LBB0_5
+.LBB0_4:                                # %true
+	movb	$1, %cl
+	movb	%cl, %al
+	addq	$24, %rsp
 	.cfi_def_cfa_offset 8
 	retq
-.LBB0_4:                                # %negative
-	.cfi_def_cfa_offset 16
-	movl	(%rsp), %ecx                    # 4-byte Reload
-	incl	%ecx
-	movl	%ecx, %edi
-	movl	%ecx, (%rsp)                    # 4-byte Spill
-	callq	even@PLT
-	movl	%eax, %ecx
-	testb	$1, %cl
-	movb	%cl, 6(%rsp)                    # 1-byte Spill
-	jne	.LBB0_3
-.LBB0_5:                                # %true
-	movb	$1, %al
-	popq	%rcx
+.LBB0_5:                                # %false
+	.cfi_def_cfa_offset 32
+	xorl	%ecx, %ecx
+	movb	%cl, %dl
+	movb	%dl, %al
+	addq	$24, %rsp
 	.cfi_def_cfa_offset 8
 	retq
 .Lfunc_end0:
@@ -57,8 +69,12 @@ main:                                   # @main
 # %bb.0:
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	movl	$-11, %edi
+	movl	$-11, %ecx
+	movl	%ecx, %edi
 	callq	even@PLT
+	movb	%al, %cl
+                                        # kill: def $dl killed $cl
+	movb	%cl, %al
 	popq	%rcx
 	.cfi_def_cfa_offset 8
 	retq

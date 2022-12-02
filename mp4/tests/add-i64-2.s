@@ -8,9 +8,14 @@ pr32690:                                # @pr32690
 # %bb.0:
 	movl	%edi, %ecx
 	movl	%ecx, %edx
-	addq	$63, %rdx
+	movl	%edx, %ecx
+	movl	%ecx, %edx
+	movq	%rdx, %rcx
+	addq	$63, %rcx
+	movq	%rcx, %rdx
 	shrq	$6, %rdx
-	movl	%edx, %eax
+	movl	%edx, %ecx
+	movl	%ecx, %eax
 	retq
 .Lfunc_end0:
 	.size	pr32690, .Lfunc_end0-pr32690
@@ -24,8 +29,11 @@ main:                                   # @main
 # %bb.0:
 	pushq	%rax
 	.cfi_def_cfa_offset 16
-	movl	$2, %edi
+	movl	$2, %ecx
+	movl	%ecx, %edi
 	callq	pr32690@PLT
+	movl	%eax, %ecx
+	movl	%ecx, %eax
 	popq	%rcx
 	.cfi_def_cfa_offset 8
 	retq
