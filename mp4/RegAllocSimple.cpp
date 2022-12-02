@@ -292,8 +292,14 @@ class RegAllocSimple : public MachineFunctionPass {
                        << printRegUnit(phys_live, TRI) << "\n");
 
             const TargetRegisterClass *RC = MRI->getRegClass(virt_live);
+
+            bool should_kill = true;  // don't kill if passed as parameter
+            for (auto &OP : MI.operands())
+              if (OP.isReg() && OP.getReg() == phys_live) should_kill = false;
+
             if (OP.clobbersPhysReg(phys_live)) {
-              TII->storeRegToStackSlot(*MI.getParent(), MI, phys_live, true,
+              TII->storeRegToStackSlot(*MI.getParent(), MI, phys_live,
+                                       should_kill,
                                        allocateStackSlot(virt_live), RC, TRI);
               to_erase.insert(virt_live);
               NumStores++;
